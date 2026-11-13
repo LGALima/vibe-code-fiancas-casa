@@ -18,7 +18,13 @@ import { IconeCategoria } from "@/components/icone-categoria";
 import { PainelConfirmarExclusao } from "@/components/confirmar-exclusao";
 import type { CategoriaOpcao, FormaOpcao, Lancamento, Membro } from "@/lib/dados";
 import { formatarData, formatarDiaDaLista } from "@/lib/dominio/datas";
-import { formatarBRL, formatarDiferenca, lerValor } from "@/lib/dominio/dinheiro";
+import {
+  formatarBRL,
+  formatarDiferenca,
+  lerValor,
+  mascararCentavos,
+  mascararColado,
+} from "@/lib/dominio/dinheiro";
 import {
   ROTULO_STATUS,
   avaliarDiferenca,
@@ -522,12 +528,17 @@ function ConfirmarValor({ lancamento: l, onFechar }: { lancamento: Lancamento; o
         <div className="flex gap-2">
           <Input
             id="outro-valor"
-            inputMode="decimal"
+            inputMode="numeric"
             autoComplete="off"
             placeholder="0,00"
             className="h-11 text-lg tabular-nums"
             value={outro}
-            onChange={(e) => setOutro(e.target.value)}
+            // Mesma máscara do Lançar: 7890 vira 78,90.
+            onChange={(e) => setOutro(mascararCentavos(e.target.value))}
+            onPaste={(e) => {
+              e.preventDefault();
+              setOutro(mascararColado(e.clipboardData.getData("text")));
+            }}
           />
           <Button
             type="submit"
