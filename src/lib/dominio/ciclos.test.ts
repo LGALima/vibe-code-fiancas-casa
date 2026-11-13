@@ -26,9 +26,10 @@ describe("fimDoCiclo", () => {
 });
 
 describe("nomeDoCiclo", () => {
-  test("pelo mês em que o ciclo passa mais dias", () => {
-    expect(nomeDoCiclo("2026-12-03", "2027-01-02")).toBe("Dezembro/2026");
-    expect(nomeDoCiclo("2026-12-28", "2027-01-27")).toBe("Janeiro/2027");
+  test("mês/ano do início", () => {
+    expect(nomeDoCiclo("2026-12-03")).toBe("Dezembro/2026");
+    expect(nomeDoCiclo("2026-12-28")).toBe("Dezembro/2026");
+    expect(nomeDoCiclo("2027-01-31")).toBe("Janeiro/2027");
   });
 });
 

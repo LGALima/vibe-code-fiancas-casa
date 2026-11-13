@@ -1,5 +1,4 @@
 import {
-  diasEntre,
   montar,
   partes,
   somarDias,
@@ -35,12 +34,11 @@ export function fimDoCiclo(inicio: DataISO): DataISO {
 }
 
 /**
- * Nome do ciclo pelo mês em que ele passa mais dias (o mês do meio do
- * período): 03/12/2026 a 02/01/2027 → "Dezembro/2026".
+ * Nome do ciclo = mês/ano do início (igual a privado.nome_do_ciclo no banco):
+ * 03/12/2026 a 02/01/2027 → "Dezembro/2026".
  */
-export function nomeDoCiclo(inicio: DataISO, fim: DataISO): string {
-  const meio = somarDias(inicio, Math.floor(diasEntre(inicio, fim) / 2));
-  const { ano, mes } = partes(meio);
+export function nomeDoCiclo(inicio: DataISO): string {
+  const { ano, mes } = partes(inicio);
   return `${MESES[mes - 1]}/${ano}`;
 }
 
@@ -52,7 +50,7 @@ export function cicloPadraoDaData(data: DataISO, diaInicio: number): SugestaoCic
   const { ano, mes, dia } = partes(data);
   const inicio = dia >= diaInicio ? montar(ano, mes, diaInicio) : montar(ano, mes - 1, diaInicio);
   const fim = fimDoCiclo(inicio);
-  return { nome: nomeDoCiclo(inicio, fim), data_inicio: inicio, data_fim: fim };
+  return { nome: nomeDoCiclo(inicio), data_inicio: inicio, data_fim: fim };
 }
 
 export function contem(ciclo: CicloDatas, data: DataISO): boolean {
@@ -112,5 +110,5 @@ export function sugerirNovoCiclo(
   const ultimoFim = ciclos.reduce((max, c) => (c.data_fim > max ? c.data_fim : max), ciclos[0].data_fim);
   const inicio = somarDias(ultimoFim, 1);
   const fim = fimDoCiclo(inicio);
-  return { nome: nomeDoCiclo(inicio, fim), data_inicio: inicio, data_fim: fim };
+  return { nome: nomeDoCiclo(inicio), data_inicio: inicio, data_fim: fim };
 }

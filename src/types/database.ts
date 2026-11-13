@@ -367,6 +367,13 @@ export type Database = {
         };
         Returns: string;
       };
+      criar_proximo_ciclo: {
+        Args: {
+          p_ciclo_id: string;
+          p_usar_ultimo_real?: boolean;
+        };
+        Returns: string;
+      };
       eh_membro: {
         Args: {
           p_espaco_id: string;
@@ -391,6 +398,13 @@ export type Database = {
           p_espaco_id: string;
         };
         Returns: undefined;
+      };
+      previa_proximo_ciclo: {
+        Args: {
+          p_ciclo_id: string;
+          p_usar_ultimo_real?: boolean;
+        };
+        Returns: Json;
       };
     };
     Enums: {

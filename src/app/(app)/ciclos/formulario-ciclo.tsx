@@ -27,17 +27,20 @@ export function NovoCiclo({
   espacoId,
   sugestao,
   existentes,
+  secundario = false,
 }: {
   espacoId: string;
   sugestao: SugestaoCiclo;
   existentes: CicloExistente[];
+  /** Quando já há ciclos, o principal é "Criar próximo ciclo". */
+  secundario?: boolean;
 }) {
   const [aberto, setAberto] = useState(false);
   return (
     <Dialog open={aberto} onOpenChange={setAberto}>
-      <Button onClick={() => setAberto(true)}>
+      <Button variant={secundario ? "outline" : "default"} onClick={() => setAberto(true)}>
         <Plus aria-hidden />
-        Novo ciclo
+        {secundario ? "Ciclo avulso" : "Novo ciclo"}
       </Button>
       {aberto && (
         <Formulario
@@ -108,7 +111,6 @@ function Formulario({
     register,
     handleSubmit,
     setValue,
-    getValues,
     getFieldState,
     formState: { errors, isSubmitting },
   } = useForm<CicloDados>({
@@ -128,7 +130,7 @@ function Formulario({
       const inicio = e.target.value;
       if (!ehDataValida(inicio)) return;
       if (!getFieldState("data_fim").isDirty) setValue("data_fim", fimDoCiclo(inicio));
-      if (!getFieldState("nome").isDirty) setValue("nome", nomeDoCiclo(inicio, getValues("data_fim")));
+      if (!getFieldState("nome").isDirty) setValue("nome", nomeDoCiclo(inicio));
     },
   });
 
