@@ -1,6 +1,9 @@
+import { Suspense, type ReactNode } from "react";
+import { redirect } from "next/navigation";
 import { LogOut } from "lucide-react";
 import { BarraInferior } from "@/components/barra-inferior";
 import { Button } from "@/components/ui/button";
+import { obterEspacoAtivo } from "@/lib/espaco";
 import { sair } from "./actions";
 
 export default function AppLayout({ children }: LayoutProps<"/">) {
@@ -19,10 +22,28 @@ export default function AppLayout({ children }: LayoutProps<"/">) {
       </header>
 
       <main className="mx-auto w-full max-w-md flex-1 px-4 pt-4 pb-[calc(5rem+env(safe-area-inset-bottom))]">
-        {children}
+        <Suspense fallback={<Carregando />}>
+          <ExigirEspaco>{children}</ExigirEspaco>
+        </Suspense>
       </main>
 
       <BarraInferior />
+    </div>
+  );
+}
+
+/** Sem espaço ainda (primeiro login): vai escolher entre criar ou entrar. */
+async function ExigirEspaco({ children }: { children: ReactNode }) {
+  const espaco = await obterEspacoAtivo();
+  if (!espaco) redirect("/boas-vindas");
+  return children;
+}
+
+function Carregando() {
+  return (
+    <div className="flex flex-col gap-4" aria-busy="true" aria-label="Carregando">
+      <div className="h-7 w-32 animate-pulse rounded-md bg-muted" />
+      <div className="h-40 animate-pulse rounded-xl bg-muted" />
     </div>
   );
 }

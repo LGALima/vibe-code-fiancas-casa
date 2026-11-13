@@ -305,6 +305,32 @@ export type Database = {
           },
         ];
       };
+      preferencias_usuario: {
+        Row: {
+          user_id: string;
+          espaco_ativo_id: string | null;
+          atualizado_em: string;
+        };
+        Insert: {
+          user_id?: string;
+          espaco_ativo_id?: string | null;
+          atualizado_em?: string;
+        };
+        Update: {
+          user_id?: string;
+          espaco_ativo_id?: string | null;
+          atualizado_em?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "preferencias_usuario_espaco_ativo_id_fkey";
+            columns: ["espaco_ativo_id"];
+            isOneToOne: false;
+            referencedRelation: "espacos";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
     };
     Views: {
       [_ in never]: never;
@@ -329,6 +355,18 @@ export type Database = {
           p_nome_exibicao?: string;
         };
         Returns: string;
+      };
+      inserir_cadastros_padrao: {
+        Args: {
+          p_espaco_id: string;
+        };
+        Returns: undefined;
+      };
+      marcar_espaco_ativo: {
+        Args: {
+          p_espaco_id: string;
+        };
+        Returns: undefined;
       };
     };
     Enums: {

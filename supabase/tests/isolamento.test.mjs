@@ -81,13 +81,13 @@ before(async () => {
   ).id;
   X.categoria = (
     await um(
-      "insert into public.categorias (espaco_id, nome, tipo, cor) values ($1, 'Essencial', 'gasto', '#3366FF') returning id",
+      "insert into public.categorias (espaco_id, nome, tipo, cor) values ($1, 'Mercado', 'gasto', '#3366FF') returning id",
       [X.espaco],
     )
   ).id;
   X.forma = (
     await um(
-      "insert into public.formas_pagamento (espaco_id, nome) values ($1, 'Pix') returning id",
+      "insert into public.formas_pagamento (espaco_id, nome) values ($1, 'Vale-refeição') returning id",
       [X.espaco],
     )
   ).id;
@@ -111,13 +111,13 @@ before(async () => {
   ).id;
   Y.categoria = (
     await um(
-      "insert into public.categorias (espaco_id, nome, tipo) values ($1, 'Lazer', 'gasto') returning id",
+      "insert into public.categorias (espaco_id, nome, tipo) values ($1, 'Viagem', 'gasto') returning id",
       [Y.espaco],
     )
   ).id;
   Y.forma = (
     await um(
-      "insert into public.formas_pagamento (espaco_id, nome) values ($1, 'Débito') returning id",
+      "insert into public.formas_pagamento (espaco_id, nome) values ($1, 'Boleto') returning id",
       [Y.espaco],
     )
   ).id;
@@ -135,8 +135,8 @@ describe("membros do espaço", () => {
       assert.equal(await contar("membros", "espaco_id", X.espaco), 2);
       assert.equal(await contar("configuracoes", "espaco_id", X.espaco), 1);
       assert.equal(await contar("ciclos", "espaco_id", X.espaco), 1);
-      assert.equal(await contar("categorias", "espaco_id", X.espaco), 1);
-      assert.equal(await contar("formas_pagamento", "espaco_id", X.espaco), 1);
+      assert.equal(await contar("categorias", "espaco_id", X.espaco), 10);
+      assert.equal(await contar("formas_pagamento", "espaco_id", X.espaco), 5);
       assert.equal(await contar("lancamentos", "espaco_id", X.espaco), 1);
     }
   });
