@@ -14,7 +14,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { destinoSeguro } from "@/lib/destino-seguro";
+import { depoisDoLogin, destinoSeguro } from "@/lib/destino-seguro";
 import { createClient } from "@/lib/supabase/client";
 import { traduzirErroAuth } from "@/lib/supabase/erros";
 import {
@@ -143,7 +143,7 @@ function EntrarForm({
       setErro(traduzirErroAuth(error));
       return;
     }
-    router.replace(next);
+    router.replace(depoisDoLogin(next));
     router.refresh();
   }
 
@@ -228,7 +228,7 @@ function CadastroForm({
     }
     if (data.session) {
       // Confirmação de e-mail desligada no Supabase: já entra direto.
-      router.replace(next);
+      router.replace(depoisDoLogin(next));
       router.refresh();
       return;
     }

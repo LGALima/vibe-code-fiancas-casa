@@ -13,3 +13,11 @@ export function destinoSeguro(next: string | null | undefined): string {
   }
   return next;
 }
+
+/**
+ * Depois do login, a pessoa escolhe o espaço e só então segue para `next`.
+ */
+export function depoisDoLogin(next: string | null | undefined): string {
+  const destino = destinoSeguro(next);
+  return destino === "/" ? "/espacos" : `/espacos?next=${encodeURIComponent(destino)}`;
+}
