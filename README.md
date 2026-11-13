@@ -12,7 +12,11 @@ Requisitos: Node.js 20 ou mais novo e um projeto no [Supabase](https://supabase.
    npm install
    ```
 
-2. Copie `.env.example` para `.env.local` e preencha com a **Project URL** e a chave **anon / publishable**. As duas ficam no painel do Supabase, em *Project Settings → API*. Nunca use a chave `service_role` aqui.
+2. Copie `.env.example` para `.env.local` e preencha:
+   - `NEXT_PUBLIC_SUPABASE_URL`: a **Project URL**, em *Project Settings → Data API*.
+   - `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`: a **Publishable key** (`sb_publishable_...`), em *Project Settings → API Keys*.
+
+   Nunca use a **secret key** (`sb_secret_...`) nem a `service_role` no app.
 
 3. No painel do Supabase, em *Authentication → URL Configuration*:
    - **Site URL**: `http://localhost:3000`

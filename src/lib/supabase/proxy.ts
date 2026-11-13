@@ -16,10 +16,10 @@ function ehRotaPublica(pathname: string) {
  * quem não estiver autenticado.
  */
 export async function updateSession(request: NextRequest) {
-  const { url, anonKey } = getSupabaseEnv();
+  const { url, publishableKey } = getSupabaseEnv();
   let response = NextResponse.next({ request });
 
-  const supabase = createServerClient(url, anonKey, {
+  const supabase = createServerClient(url, publishableKey, {
     cookies: {
       getAll() {
         return request.cookies.getAll();

@@ -8,10 +8,10 @@ import { getSupabaseEnv } from "./env";
  * Crie um novo cliente a cada requisição; nunca compartilhe entre requisições.
  */
 export async function createClient() {
-  const { url, anonKey } = getSupabaseEnv();
+  const { url, publishableKey } = getSupabaseEnv();
   const cookieStore = await cookies();
 
-  return createServerClient(url, anonKey, {
+  return createServerClient(url, publishableKey, {
     cookies: {
       getAll() {
         return cookieStore.getAll();
