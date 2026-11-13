@@ -291,7 +291,7 @@ export function FormularioLancamento({ espacoId, hoje, ciclos, categorias, forma
         render={({ field }) => (
           <fieldset className="flex flex-col gap-2">
             <legend className="mb-2 text-sm font-medium">Categoria</legend>
-            <div role="radiogroup" aria-label="Categoria" className="grid grid-cols-3 gap-2">
+            <div role="radiogroup" aria-label="Categoria" className="grid grid-cols-3 gap-2 sm:grid-cols-4 lg:grid-cols-5">
               {categoriasDoTipo.map((c) => {
                 const ativo = field.value === c.id;
                 const cor = c.cor ?? "#475569";
@@ -474,7 +474,7 @@ export function FormularioLancamento({ espacoId, hoje, ciclos, categorias, forma
         </p>
       )}
 
-      <div className="sticky bottom-[calc(4.5rem+env(safe-area-inset-bottom))] z-10 flex gap-2 bg-background/95 py-2 backdrop-blur">
+      <div className="sticky bottom-[calc(4.5rem+env(safe-area-inset-bottom))] z-10 md:bottom-0 flex gap-2 bg-background/95 py-2 backdrop-blur">
         {editando && (
           <Button type="button" variant="destructive" className="h-12" onClick={excluir} disabled={isSubmitting}>
             Excluir

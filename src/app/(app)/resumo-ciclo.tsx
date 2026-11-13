@@ -31,7 +31,7 @@ export function ResumoCiclo({
   const porDia = podeGastarPorDia(resumo.saldo_previsto, dias);
 
   return (
-    <section aria-label="Resumo do ciclo" className="grid grid-cols-2 gap-3">
+    <section aria-label="Resumo do ciclo" className="grid grid-cols-2 gap-3 md:grid-cols-4">
       <Cartao titulo="Ganhos" Icone={ArrowUpRight} corIcone="text-emerald-600 dark:text-emerald-400">
         <Valores previsto={resumo.ganhos_previsto} realizado={resumo.ganhos_realizado} />
       </Cartao>

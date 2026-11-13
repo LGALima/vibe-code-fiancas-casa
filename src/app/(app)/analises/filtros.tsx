@@ -36,7 +36,7 @@ export function FiltrosAnalise({
   }
 
   return (
-    <div className="flex flex-col gap-3 rounded-xl border p-3">
+    <div className="flex flex-col gap-3 rounded-xl border p-3 md:grid md:grid-cols-[minmax(0,2fr)_minmax(15rem,1fr)] md:items-end md:gap-4">
       <div className="grid grid-cols-2 gap-3">
         <div className="flex flex-col gap-1">
           <Label htmlFor="filtro-ciclo" className="text-xs">

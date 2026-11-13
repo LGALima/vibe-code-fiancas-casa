@@ -83,7 +83,7 @@ async function Conteudo({ searchParams }: { searchParams: PageProps<"/">["search
         filtrosIniciais={{ categoria: categoriaPedida ?? "", pessoa: pessoaPedida ?? "" }}
       />
       <Button
-        className="fixed right-4 bottom-[calc(5rem+env(safe-area-inset-bottom))] z-30 size-14 rounded-full shadow-lg"
+        className="fixed right-4 bottom-[calc(5rem+env(safe-area-inset-bottom))] z-30 size-14 rounded-full shadow-lg md:right-8 md:bottom-8"
         nativeButton={false} render={<Link href="/lancar" aria-label="Lançar" />}
       >
         <Plus className="size-6" aria-hidden />
