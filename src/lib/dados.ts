@@ -1,6 +1,7 @@
 import "server-only";
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
+import { resumoDaLinha, type Resumo } from "@/lib/dominio/resumo";
 import type { TipoLancamento } from "@/lib/dominio/status";
 
 export type Ciclo = {
@@ -126,6 +127,20 @@ export async function carregarLancamentosDoCiclo(
     .order("criado_em", { ascending: false });
   if (error) falhar("os lançamentos", error);
   return data.map((l) => ({ ...l, tipo: l.tipo as TipoLancamento }));
+}
+
+/** Totais do ciclo, calculados no banco pela view resumo_ciclo. */
+export async function carregarResumo(cicloId: string): Promise<Resumo> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("resumo_ciclo")
+    .select(
+      "ganhos_previsto, ganhos_realizado, gastos_previsto, gastos_realizado, saldo_previsto, saldo_realizado",
+    )
+    .eq("ciclo_id", cicloId)
+    .maybeSingle();
+  if (error) falhar("os totais do ciclo", error);
+  return resumoDaLinha(data);
 }
 
 export async function carregarLancamento(
