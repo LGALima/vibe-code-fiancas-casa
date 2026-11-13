@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -105,7 +105,10 @@ function Formulario({
   const router = useRouter();
   const [erro, setErro] = useState<string>();
   const [confirmandoExclusao, setConfirmandoExclusao] = useState(false);
-  const [excluindo, setExcluindo] = useState(false);
+  // Salvar/excluir e a atualização da tela ficam numa transição: o botão só
+  // volta ao normal quando a tela já mostra o resultado.
+  const [ocupado, iniciar] = useTransition();
+  const [acao, setAcao] = useState<"salvar" | "excluir">("salvar");
   const schema = useMemo(() => cicloSchema(existentes), [existentes]);
   const {
     register,
@@ -141,6 +144,7 @@ function Formulario({
 
   async function salvar(dados: CicloDados) {
     setErro(undefined);
+    setAcao("salvar");
     const supabase = createClient();
     if (ciclo) {
       const { error } = await supabase.from("ciclos").update(dados).eq("id", ciclo.id);
@@ -148,8 +152,10 @@ function Formulario({
         setErro(mensagemDoBanco(error));
         return;
       }
-      onConcluir();
-      router.refresh();
+      iniciar(() => {
+        router.refresh();
+        onConcluir();
+      });
       return;
     }
     const { data, error } = await supabase
@@ -161,24 +167,32 @@ function Formulario({
       setErro(mensagemDoBanco(error));
       return;
     }
-    onConcluir();
-    router.push(`/?ciclo=${data.id}`);
-    router.refresh();
+    iniciar(() => {
+      router.push(`/?ciclo=${data.id}`);
+      router.refresh();
+      onConcluir();
+    });
   }
 
-  async function excluir() {
+  function excluir() {
     if (!ciclo) return;
     setErro(undefined);
-    setExcluindo(true);
-    const { error } = await createClient().from("ciclos").delete().eq("id", ciclo.id);
-    setExcluindo(false);
-    if (error) {
-      setErro(mensagemDoBanco(error));
-      return;
-    }
-    onConcluir();
-    router.refresh();
+    setAcao("excluir");
+    iniciar(async () => {
+      const { error } = await createClient().from("ciclos").delete().eq("id", ciclo.id);
+      if (error) {
+        setErro(mensagemDoBanco(error));
+        return;
+      }
+      iniciar(() => {
+        router.refresh();
+        onConcluir();
+      });
+    });
   }
+
+  const excluindo = ocupado && acao === "excluir";
+  const salvando = isSubmitting || (ocupado && acao === "salvar");
 
   if (ciclo && confirmandoExclusao) {
     const n = ciclo.qtdLancamentos;
@@ -208,7 +222,7 @@ function Formulario({
           <Button
             className="h-10 bg-destructive text-white hover:bg-destructive/90"
             onClick={excluir}
-            disabled={excluindo}
+            carregando={excluindo}
           >
             {excluindo
               ? "Excluindo…"
@@ -250,13 +264,13 @@ function Formulario({
             variant="destructive"
             className="h-10 sm:mr-auto"
             onClick={() => setConfirmandoExclusao(true)}
-            disabled={isSubmitting}
+            disabled={salvando}
           >
             Excluir ciclo
           </Button>
         )}
-        <Button type="submit" form="form-ciclo" className="h-10" disabled={isSubmitting}>
-          {isSubmitting ? "Salvando…" : ciclo ? "Salvar" : "Criar ciclo"}
+        <Button type="submit" form="form-ciclo" className="h-10" carregando={salvando}>
+          {salvando ? (ciclo ? "Salvando…" : "Criando…") : ciclo ? "Salvar" : "Criar ciclo"}
         </Button>
       </DialogFooter>
     </DialogContent>

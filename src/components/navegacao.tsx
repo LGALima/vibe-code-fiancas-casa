@@ -1,11 +1,12 @@
 "use client";
 
-import Link from "next/link";
+import Link, { useLinkStatus } from "next/link";
 import { usePathname } from "next/navigation";
 import {
   ChartColumn,
   House,
   ListChecks,
+  Loader2,
   PlusCircle,
   RefreshCw,
   type LucideIcon,
@@ -24,6 +25,20 @@ const ITENS: Item[] = [
 
 function estaAtivo(pathname: string, href: string) {
   return href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(`${href}/`);
+}
+
+/** Ícone do item; gira enquanto a tela escolhida carrega. */
+function IconeItem({ Icone, ativo, className }: { Icone: LucideIcon; ativo: boolean; className: string }) {
+  const { pending } = useLinkStatus();
+  if (pending) {
+    return (
+      <>
+        <Loader2 className={cn(className, "animate-spin")} aria-hidden />
+        <span className="sr-only">Carregando</span>
+      </>
+    );
+  }
+  return <Icone className={className} strokeWidth={ativo ? 2.4 : 1.8} aria-hidden />;
 }
 
 /** Celular: barra fixa embaixo (some a partir de 768px). */
@@ -48,7 +63,7 @@ export function BarraInferior() {
                   ativo ? "text-primary" : "text-muted-foreground hover:text-foreground",
                 )}
               >
-                <Icone className="size-5" strokeWidth={ativo ? 2.4 : 1.8} aria-hidden />
+                <IconeItem Icone={Icone} ativo={ativo} className="size-5" />
                 {rotulo}
               </Link>
             </li>
@@ -80,7 +95,7 @@ export function LinksLaterais() {
                     : "text-muted-foreground hover:bg-muted/60 hover:text-foreground",
                 )}
               >
-                <Icone className="size-4" strokeWidth={ativo ? 2.4 : 1.8} aria-hidden />
+                <IconeItem Icone={Icone} ativo={ativo} className="size-4" />
                 {rotulo}
               </Link>
             </li>

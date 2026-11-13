@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -13,7 +14,13 @@ export function SeletorCiclo({ ciclos, atualId }: { ciclos: Ciclo[]; atualId: st
   const atual = ciclos[i];
   const anterior = ciclos[i + 1];
   const proximo = ciclos[i - 1];
-  const ir = (id: string) => router.push(`/?ciclo=${id}`);
+  // Até o ciclo escolhido aparecer, a seta gira e a data vira "Carregando…".
+  const [carregando, iniciar] = useTransition();
+  const [origem, setOrigem] = useState<"anterior" | "proximo" | "lista">("lista");
+  const ir = (id: string, de: typeof origem) => {
+    setOrigem(de);
+    iniciar(() => router.push(`/?ciclo=${id}`));
+  };
 
   return (
     <div className="flex items-center gap-1">
@@ -22,7 +29,8 @@ export function SeletorCiclo({ ciclos, atualId }: { ciclos: Ciclo[]; atualId: st
         size="icon"
         className="size-10"
         disabled={!anterior}
-        onClick={() => anterior && ir(anterior.id)}
+        carregando={carregando && origem === "anterior"}
+        onClick={() => anterior && ir(anterior.id, "anterior")}
         aria-label={anterior ? `Ciclo anterior: ${anterior.nome}` : "Não há ciclo anterior"}
       >
         <ChevronLeft aria-hidden />
@@ -31,7 +39,7 @@ export function SeletorCiclo({ ciclos, atualId }: { ciclos: Ciclo[]; atualId: st
         <span className="sr-only">Ciclo</span>
         <select
           value={atualId}
-          onChange={(e) => ir(e.target.value)}
+          onChange={(e) => ir(e.target.value, "lista")}
           className="w-full cursor-pointer appearance-none bg-transparent text-center text-lg font-semibold tracking-tight outline-none focus-visible:underline"
         >
           {ciclos.map((c) => (
@@ -40,10 +48,16 @@ export function SeletorCiclo({ ciclos, atualId }: { ciclos: Ciclo[]; atualId: st
             </option>
           ))}
         </select>
-        {atual && (
-          <span className="text-xs text-muted-foreground">
-            {formatarData(atual.data_inicio)} a {formatarData(atual.data_fim)}
+        {carregando ? (
+          <span className="text-xs text-muted-foreground" aria-live="polite">
+            Carregando…
           </span>
+        ) : (
+          atual && (
+            <span className="text-xs text-muted-foreground">
+              {formatarData(atual.data_inicio)} a {formatarData(atual.data_fim)}
+            </span>
+          )
         )}
       </label>
       <Button
@@ -51,7 +65,8 @@ export function SeletorCiclo({ ciclos, atualId }: { ciclos: Ciclo[]; atualId: st
         size="icon"
         className="size-10"
         disabled={!proximo}
-        onClick={() => proximo && ir(proximo.id)}
+        carregando={carregando && origem === "proximo"}
+        onClick={() => proximo && ir(proximo.id, "proximo")}
         aria-label={proximo ? `Próximo ciclo: ${proximo.nome}` : "Não há próximo ciclo"}
       >
         <ChevronRight aria-hidden />

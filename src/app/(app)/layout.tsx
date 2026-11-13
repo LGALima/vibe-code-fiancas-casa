@@ -1,14 +1,13 @@
 import { Suspense, type ReactNode } from "react";
 import { redirect } from "next/navigation";
-import { LogOut, Wallet } from "lucide-react";
+import { Wallet } from "lucide-react";
+import { BotaoSair } from "@/components/botao-sair";
 import { BotaoTema } from "@/components/botao-tema";
 import { BarraInferior, LinksLaterais } from "@/components/navegacao";
 import { SeletorEspaco } from "@/components/seletor-espaco";
-import { Button } from "@/components/ui/button";
 import { carregarMeusEspacos, obterEspacoAtivo } from "@/lib/espaco";
 import { nomeExibicaoSugerido } from "@/lib/espacos";
 import { cn } from "@/lib/utils";
-import { sair } from "./actions";
 
 /**
  * O espaço em uso fica sempre à vista: no cabeçalho (celular) e na barra
@@ -28,12 +27,7 @@ export default function AppLayout({ children }: LayoutProps<"/">) {
         <LinksLaterais />
         <div className="mt-auto flex flex-col gap-1">
           <BotaoTema comRotulo className="h-9 w-full px-3" />
-          <form action={sair}>
-            <Button type="submit" variant="ghost" size="sm" className="h-9 w-full justify-start px-3">
-              <LogOut aria-hidden />
-              Sair
-            </Button>
-          </form>
+          <BotaoSair className="h-9 w-full justify-start px-3" />
         </div>
       </aside>
 
@@ -45,12 +39,7 @@ export default function AppLayout({ children }: LayoutProps<"/">) {
           </Suspense>
           <div className="flex shrink-0 items-center gap-1">
             <BotaoTema />
-            <form action={sair}>
-              <Button type="submit" variant="ghost" size="sm">
-                <LogOut aria-hidden />
-                Sair
-              </Button>
-            </form>
+            <BotaoSair />
           </div>
         </div>
       </header>

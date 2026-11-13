@@ -1,8 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
-import { ArrowLeft, Check, ChevronsUpDown, Plus } from "lucide-react";
+import { ArrowLeft, Check, ChevronsUpDown, Loader2, Plus } from "lucide-react";
 import { trocarEspaco } from "@/app/(app)/actions";
 import { CriarOuEntrarEspaco } from "@/components/formularios-espaco";
 import { Button } from "@/components/ui/button";
@@ -80,6 +79,7 @@ export function ListaEspacos({
                 onClick={() => escolher(e.id)}
                 disabled={pendente}
                 aria-current={ativo ? "true" : undefined}
+                aria-busy={carregando || undefined}
                 className={cn(
                   "flex w-full items-center gap-3 rounded-xl border p-3 text-left transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-70",
                   ativo ? "border-primary bg-primary/5" : "hover:bg-muted",
@@ -88,7 +88,10 @@ export function ListaEspacos({
                 <InicialEspaco nome={e.nome} />
                 <span className="min-w-0 flex-1 truncate font-medium">{e.nome}</span>
                 {carregando ? (
-                  <span className="text-xs text-muted-foreground">Abrindo…</span>
+                  <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                    <Loader2 className="size-4 animate-spin" aria-hidden />
+                    Abrindo…
+                  </span>
                 ) : ativo ? (
                   <span className="flex items-center gap-1 text-xs font-medium text-primary">
                     <Check className="size-4" aria-hidden />
@@ -124,7 +127,6 @@ export function SeletorEspaco({
   nomeExibicaoPadrao: string;
   variante: "lateral" | "cabecalho";
 }) {
-  const router = useRouter();
   const [aberto, setAberto] = useState(false);
   const [modo, setModo] = useState<"lista" | "novo">("lista");
   const atual = espacos.find((e) => e.id === ativoId);
@@ -190,11 +192,7 @@ export function SeletorEspaco({
               <CriarOuEntrarEspaco
                 nomeEspacoPadrao=""
                 nomeExibicaoPadrao={nomeExibicaoPadrao}
-                onConcluir={() => {
-                  setAberto(false);
-                  router.replace("/");
-                  router.refresh();
-                }}
+                onConcluir={() => setAberto(false)}
               />
               <Button variant="ghost" className="h-9 self-start" onClick={() => setModo("lista")}>
                 <ArrowLeft aria-hidden />

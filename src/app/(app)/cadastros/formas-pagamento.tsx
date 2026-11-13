@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Controller, useForm } from "react-hook-form";
 import { ChevronRight, CreditCard, Plus } from "lucide-react";
 import { Campo } from "@/components/campo";
+import { PainelConfirmarExclusao } from "@/components/confirmar-exclusao";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -144,7 +145,10 @@ function Formulario({
 }) {
   const router = useRouter();
   const [erro, setErro] = useState<string>();
-  const [ocupado, setOcupado] = useState(false);
+  // A transição só termina com a lista já atualizada: até lá o botão da ação
+  // mostra que está trabalhando e o diálogo continua aberto.
+  const [ocupado, iniciar] = useTransition();
+  const [acao, setAcao] = useState<"salvar" | "alternar" | "excluir">("salvar");
   const {
     register,
     control,
@@ -159,25 +163,29 @@ function Formulario({
 
   const duplicada = "Já existe uma forma de pagamento com esse nome neste espaço.";
 
-  async function concluir(
-    acao: () => PromiseLike<{ error: Parameters<typeof traduzirErroBanco>[0] | null }>,
+  function concluir(
+    qual: typeof acao,
+    executar: () => PromiseLike<{ error: Parameters<typeof traduzirErroBanco>[0] | null }>,
   ) {
     setErro(undefined);
-    setOcupado(true);
-    const { error } = await acao();
-    setOcupado(false);
-    if (error) {
-      setErro(traduzirErroBanco(error, duplicada));
-      return;
-    }
-    onConcluir();
-    router.refresh();
+    setAcao(qual);
+    iniciar(async () => {
+      const { error } = await executar();
+      if (error) {
+        setErro(traduzirErroBanco(error, duplicada));
+        return;
+      }
+      iniciar(() => {
+        router.refresh();
+        onConcluir();
+      });
+    });
   }
 
   function salvar({ nome, ehCredito }: FormaPagamentoDados) {
     const supabase = createClient();
     const dados = { nome, eh_credito: ehCredito };
-    return concluir(() =>
+    concluir("salvar", () =>
       forma
         ? supabase.from("formas_pagamento").update(dados).eq("id", forma.id)
         : supabase.from("formas_pagamento").insert({ ...dados, espaco_id: espacoId }),
@@ -186,7 +194,7 @@ function Formulario({
 
   function alternarAtiva() {
     if (!forma) return;
-    return concluir(() =>
+    concluir("alternar", () =>
       createClient()
         .from("formas_pagamento")
         .update({ ativa: !forma.ativa })
@@ -194,15 +202,35 @@ function Formulario({
     );
   }
 
+  // Primeiro troca o formulário pela pergunta; só exclui depois do "Excluir".
+  const [confirmandoExclusao, setConfirmandoExclusao] = useState(false);
+
   function excluir() {
     if (!forma) return;
-    if (!window.confirm(`Excluir a forma de pagamento "${forma.nome}"? Isso não pode ser desfeito.`)) {
-      return;
-    }
-    return concluir(() => createClient().from("formas_pagamento").delete().eq("id", forma.id));
+    concluir("excluir", () => createClient().from("formas_pagamento").delete().eq("id", forma.id));
   }
 
   const travado = isSubmitting || ocupado;
+  const emAndamento = (qual: typeof acao) => ocupado && acao === qual;
+  const salvando = isSubmitting || emAndamento("salvar");
+
+  if (forma && confirmandoExclusao) {
+    return (
+      <DialogContent>
+        <PainelConfirmarExclusao
+          titulo={`Excluir a forma de pagamento "${forma.nome}"?`}
+          rotuloConfirmar="Excluir forma de pagamento"
+          excluindo={emAndamento("excluir")}
+          erro={erro}
+          onConfirmar={excluir}
+          onCancelar={() => {
+            setErro(undefined);
+            setConfirmandoExclusao(false);
+          }}
+        />
+      </DialogContent>
+    );
+  }
 
   return (
     <DialogContent>
@@ -251,18 +279,40 @@ function Formulario({
       <DialogFooter className="gap-2">
         {forma && (
           <div className="flex flex-1 gap-2">
-            <Button type="button" variant="outline" className="h-10" onClick={alternarAtiva} disabled={travado}>
-              {forma.ativa ? "Desativar" : "Reativar"}
+            <Button
+              type="button"
+              variant="outline"
+              className="h-10"
+              onClick={alternarAtiva}
+              carregando={emAndamento("alternar")}
+              disabled={travado}
+            >
+              {emAndamento("alternar")
+                ? forma.ativa
+                  ? "Desativando…"
+                  : "Reativando…"
+                : forma.ativa
+                  ? "Desativar"
+                  : "Reativar"}
             </Button>
             {!forma.emUso && (
-              <Button type="button" variant="destructive" className="h-10" onClick={excluir} disabled={travado}>
+              <Button
+                type="button"
+                variant="destructive"
+                className="h-10"
+                onClick={() => {
+                  setErro(undefined);
+                  setConfirmandoExclusao(true);
+                }}
+                disabled={travado}
+              >
                 Excluir
               </Button>
             )}
           </div>
         )}
-        <Button type="submit" form="form-forma" className="h-10" disabled={travado}>
-          {isSubmitting ? "Salvando…" : "Salvar"}
+        <Button type="submit" form="form-forma" className="h-10" carregando={salvando} disabled={travado}>
+          {salvando ? "Salvando…" : "Salvar"}
         </Button>
       </DialogFooter>
       {forma?.emUso && (
