@@ -31,7 +31,8 @@ async function Conteudo({ searchParams }: { searchParams: PageProps<"/">["search
   const espaco = await obterEspacoAtivo();
   if (!espaco) return null;
   const params = await searchParams;
-  const pedido = Array.isArray(params.ciclo) ? params.ciclo[0] : params.ciclo;
+  const primeiro = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
+  const pedido = primeiro(params.ciclo);
 
   const [ciclos, cadastros, membros] = await Promise.all([
     carregarCiclos(espaco.id),
@@ -54,6 +55,14 @@ async function Conteudo({ searchParams }: { searchParams: PageProps<"/">["search
     );
   }
 
+  // Filtros que chegam de Análises (tocar numa barra de categoria).
+  const categoriaPedida = cadastros.categorias.some((c) => c.id === primeiro(params.categoria))
+    ? primeiro(params.categoria)
+    : undefined;
+  const pessoaPedida = membros.some((m) => m.userId === primeiro(params.pessoa))
+    ? primeiro(params.pessoa)
+    : undefined;
+
   const [lancamentos, resumo] = await Promise.all([
     carregarLancamentosDoCiclo(espaco.id, ciclo.id),
     carregarResumo(ciclo.id),
@@ -64,12 +73,14 @@ async function Conteudo({ searchParams }: { searchParams: PageProps<"/">["search
       <SeletorCiclo ciclos={ciclos} atualId={ciclo.id} />
       <ResumoCiclo resumo={resumo} ciclo={ciclo} hoje={dataHoje} />
       <ListaLancamentos
-        key={ciclo.id}
+        // A chave inclui os filtros vindos da URL para reaplicá-los ao navegar.
+        key={`${ciclo.id}:${categoriaPedida ?? ""}:${pessoaPedida ?? ""}`}
         lancamentos={lancamentos}
         categorias={cadastros.categorias}
         formas={cadastros.formas}
         membros={membros}
         userId={espaco.userId}
+        filtrosIniciais={{ categoria: categoriaPedida ?? "", pessoa: pessoaPedida ?? "" }}
       />
       <Button
         className="fixed right-4 bottom-[calc(5rem+env(safe-area-inset-bottom))] z-30 size-14 rounded-full shadow-lg"

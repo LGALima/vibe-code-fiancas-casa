@@ -353,6 +353,13 @@ export type Database = {
       };
     };
     Functions: {
+      analise_ciclo: {
+        Args: {
+          p_ciclo_id: string;
+          p_pessoa?: string;
+        };
+        Returns: Json;
+      };
       ciclo_da_data: {
         Args: {
           p_espaco_id: string;
@@ -386,6 +393,14 @@ export type Database = {
           p_nome_exibicao?: string;
         };
         Returns: string;
+      };
+      evolucao_ciclos: {
+        Args: {
+          p_espaco_id: string;
+          p_pessoa?: string;
+          p_limite?: number;
+        };
+        Returns: Json;
       };
       inserir_cadastros_padrao: {
         Args: {

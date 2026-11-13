@@ -45,11 +45,22 @@ type Props = {
   formas: FormaOpcao[];
   membros: Membro[];
   userId: string;
+  /** Filtros que já chegam aplicados (ex.: vindo de um gráfico em Análises). */
+  filtrosIniciais?: Partial<Filtros>;
 };
 
-export function ListaLancamentos({ lancamentos, categorias, formas, membros, userId }: Props) {
-  const [filtros, setFiltros] = useState<Filtros>(SEM_FILTRO);
-  const [mostrarFiltros, setMostrarFiltros] = useState(false);
+export function ListaLancamentos({
+  lancamentos,
+  categorias,
+  formas,
+  membros,
+  userId,
+  filtrosIniciais,
+}: Props) {
+  const [filtros, setFiltros] = useState<Filtros>({ ...SEM_FILTRO, ...filtrosIniciais });
+  const [mostrarFiltros, setMostrarFiltros] = useState(
+    Object.values(filtrosIniciais ?? {}).some(Boolean),
+  );
   const [selecionado, setSelecionado] = useState<Lancamento | null>(null);
   const [confirmando, setConfirmando] = useState<Lancamento | null>(null);
 
