@@ -3,7 +3,7 @@ import {
   RESUMO_ZERADO,
   diasRestantes,
   podeGastarPorDia,
-  progressoGastos,
+  progressoDoPrevisto,
   resumoDaLinha,
 } from "./resumo";
 
@@ -45,19 +45,19 @@ describe("podeGastarPorDia", () => {
   });
 });
 
-describe("progressoGastos", () => {
+describe("progressoDoPrevisto", () => {
   test("realizado ÷ previsto", () => {
-    expect(progressoGastos(810.65, 2310.65)).toBeCloseTo(0.3508, 4);
-    expect(progressoGastos(0, 1000)).toBe(0);
+    expect(progressoDoPrevisto(810.65, 2310.65)).toBeCloseTo(0.3508, 4);
+    expect(progressoDoPrevisto(0, 1000)).toBe(0);
   });
 
   test("pode passar de 100%", () => {
-    expect(progressoGastos(1200, 1000)).toBe(1.2);
+    expect(progressoDoPrevisto(1200, 1000)).toBe(1.2);
   });
 
   test("sem previsto", () => {
-    expect(progressoGastos(0, 0)).toBe(0);
-    expect(progressoGastos(50, 0)).toBe(1);
+    expect(progressoDoPrevisto(0, 0)).toBe(0);
+    expect(progressoDoPrevisto(50, 0)).toBe(1);
   });
 });
 
