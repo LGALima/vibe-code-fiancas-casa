@@ -1,6 +1,7 @@
 import "server-only";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import { connection } from "next/server";
 import type { Database } from "@/types/database";
 import { getSupabaseEnv } from "./env";
 
@@ -9,6 +10,10 @@ import { getSupabaseEnv } from "./env";
  * Crie um novo cliente a cada requisição; nunca compartilhe entre requisições.
  */
 export async function createClient() {
+  // Dados do usuário só existem na hora da requisição. Sem isto, o Next tenta
+  // pré-renderizar com os cookies e reclama do Date.now() que o supabase-js
+  // usa para conferir a validade da sessão.
+  await connection();
   const { url, publishableKey } = getSupabaseEnv();
   const cookieStore = await cookies();
 
