@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { Trash2, TriangleAlert } from "lucide-react";
+import { Trash2, TriangleAlert, type LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -19,6 +19,14 @@ export type ConfirmarExclusaoProps = {
   descricao?: ReactNode;
   /** Texto do botão de confirmar. Padrão: "Excluir". */
   rotuloConfirmar?: string;
+  /** Texto do botão durante a ação. Padrão: "Excluindo…". */
+  rotuloEmAndamento?: string;
+  /** Frase final da descrição. Padrão: "Não dá para desfazer."; null tira. */
+  aviso?: string | null;
+  /** Ícone do botão de confirmar. Padrão: lixeira. */
+  Icone?: LucideIcon;
+  /** "perigo" (vermelho, padrão) para excluir/remover; "normal" para o resto. */
+  variante?: "perigo" | "normal";
   excluindo: boolean;
   erro?: string;
   onConfirmar: () => void;
@@ -34,6 +42,10 @@ export function PainelConfirmarExclusao({
   titulo,
   descricao,
   rotuloConfirmar = "Excluir",
+  rotuloEmAndamento = "Excluindo…",
+  aviso = "Não dá para desfazer.",
+  Icone = Trash2,
+  variante = "perigo",
   excluindo,
   erro,
   onConfirmar,
@@ -43,13 +55,15 @@ export function PainelConfirmarExclusao({
     <>
       <DialogHeader>
         <DialogTitle className="flex items-center gap-2">
-          <TriangleAlert className="size-5 shrink-0 text-destructive" aria-hidden />
+          {variante === "perigo" && (
+            <TriangleAlert className="size-5 shrink-0 text-destructive" aria-hidden />
+          )}
           {titulo}
         </DialogTitle>
         <DialogDescription>
           {descricao}
-          {descricao ? " " : null}
-          Não dá para desfazer.
+          {descricao && aviso ? " " : null}
+          {aviso}
         </DialogDescription>
       </DialogHeader>
       {erro && (
@@ -62,12 +76,12 @@ export function PainelConfirmarExclusao({
           Cancelar
         </Button>
         <Button
-          className="h-10 bg-destructive text-white hover:bg-destructive/90"
+          className={variante === "perigo" ? "h-10 bg-destructive text-white hover:bg-destructive/90" : "h-10"}
           onClick={onConfirmar}
           carregando={excluindo}
         >
-          <Trash2 aria-hidden />
-          {excluindo ? "Excluindo…" : rotuloConfirmar}
+          <Icone aria-hidden />
+          {excluindo ? rotuloEmAndamento : rotuloConfirmar}
         </Button>
       </DialogFooter>
     </>

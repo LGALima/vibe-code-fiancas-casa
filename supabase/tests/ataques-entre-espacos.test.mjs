@@ -142,7 +142,7 @@ describe("Caio (outro espaço) tentando alterar a Casa A", () => {
     await comoUsuario(db, CAIO);
     await assert.rejects(
       db.query("update public.membros set user_id = $1 where user_id = $2", [ANA, CAIO]),
-      RLS,
+      /row-level security|permission denied/,
     );
     await assert.rejects(
       db.query("insert into public.membros (espaco_id, user_id) values ($1, $2)", [C.espaco, ANA]),

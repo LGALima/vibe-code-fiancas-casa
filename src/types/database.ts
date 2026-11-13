@@ -282,18 +282,21 @@ export type Database = {
           user_id: string;
           nome_exibicao: string | null;
           criado_em: string;
+          papel: string;
         };
         Insert: {
           espaco_id: string;
           user_id: string;
           nome_exibicao?: string | null;
           criado_em?: string;
+          papel?: string;
         };
         Update: {
           espaco_id?: string;
           user_id?: string;
           nome_exibicao?: string | null;
           criado_em?: string;
+          papel?: string;
         };
         Relationships: [
           {
@@ -402,6 +405,12 @@ export type Database = {
         };
         Returns: Json;
       };
+      gerar_novo_codigo_convite: {
+        Args: {
+          p_espaco_id: string;
+        };
+        Returns: string;
+      };
       inserir_cadastros_padrao: {
         Args: {
           p_espaco_id: string;
@@ -420,6 +429,13 @@ export type Database = {
           p_usar_ultimo_real?: boolean;
         };
         Returns: Json;
+      };
+      remover_membro: {
+        Args: {
+          p_espaco_id: string;
+          p_user_id: string;
+        };
+        Returns: string;
       };
     };
     Enums: {

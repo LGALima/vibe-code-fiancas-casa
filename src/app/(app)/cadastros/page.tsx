@@ -1,18 +1,10 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import { Users } from "lucide-react";
-import { BotaoCopiar } from "@/components/botao-copiar";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { obterEspacoAtivo } from "@/lib/espaco";
 import { createClient } from "@/lib/supabase/server";
 import { Categorias, type Categoria } from "./categorias";
 import { Configuracoes } from "./configuracoes";
+import { CartaoEspaco, type MembroEspaco } from "./espaco";
 import { FormasPagamento, type FormaPagamento } from "./formas-pagamento";
 
 export const metadata: Metadata = { title: "Cadastros · Finanças da Casa" };
@@ -38,7 +30,7 @@ async function Conteudo() {
   const [membros, categorias, formas, configuracoes] = await Promise.all([
     supabase
       .from("membros")
-      .select("user_id, nome_exibicao, criado_em")
+      .select("user_id, nome_exibicao, papel, criado_em")
       .eq("espaco_id", espaco.id)
       .order("criado_em"),
     supabase
@@ -61,7 +53,11 @@ async function Conteudo() {
   const erro = membros.error ?? categorias.error ?? formas.error ?? configuracoes.error;
   if (erro) throw new Error(`Não foi possível carregar os cadastros: ${erro.message}`);
 
-  const listaMembros = membros.data ?? [];
+  const listaMembros: MembroEspaco[] = (membros.data ?? []).map((m) => ({
+    userId: m.user_id,
+    nome: m.nome_exibicao,
+    papel: m.papel === "dono" ? "dono" : "membro",
+  }));
   const listaCategorias: Categoria[] = (categorias.data ?? []).map((c) => ({
     id: c.id,
     nome: c.nome,
@@ -81,45 +77,13 @@ async function Conteudo() {
 
   return (
     <div className="grid items-start gap-4 md:grid-cols-2">
-      <Card>
-        <CardHeader>
-          <CardTitle>{espaco.nome}</CardTitle>
-          <CardDescription>
-            Para convidar quem mora com você, mande este código. A pessoa cria a
-            conta e escolhe &quot;Entrar com código&quot;.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-5">
-          <div className="flex items-center gap-2">
-            <code
-              className="flex h-10 flex-1 items-center justify-center rounded-lg border bg-muted font-mono text-lg font-semibold tracking-[0.3em]"
-              aria-label={`Código de convite: ${espaco.codigoConvite.split("").join(" ")}`}
-            >
-              {espaco.codigoConvite}
-            </code>
-            <BotaoCopiar texto={espaco.codigoConvite} rotulo="Copiar código de convite" />
-          </div>
-
-          <div className="flex flex-col gap-2">
-            <h2 className="flex items-center gap-2 text-sm font-medium">
-              <Users className="size-4" aria-hidden />
-              Membros
-            </h2>
-            <ul className="flex flex-col divide-y rounded-lg border">
-              {listaMembros.map((m) => (
-                <li key={m.user_id} className="flex items-center justify-between px-3 py-2.5 text-sm">
-                  <span>{m.nome_exibicao ?? "Sem nome"}</span>
-                  {m.user_id === espaco.userId && (
-                    <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
-                      você
-                    </span>
-                  )}
-                </li>
-              ))}
-            </ul>
-          </div>
-        </CardContent>
-      </Card>
+      <CartaoEspaco
+        espacoId={espaco.id}
+        nome={espaco.nome}
+        codigoConvite={espaco.codigoConvite}
+        userId={espaco.userId}
+        membros={listaMembros}
+      />
 
       <Categorias espacoId={espaco.id} categorias={listaCategorias} />
       <FormasPagamento espacoId={espaco.id} formas={listaFormas} />

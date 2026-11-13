@@ -312,7 +312,8 @@ describe("usuário fora do espaço (Caio)", () => {
     await falha(
       "update public.membros set espaco_id = $1 where espaco_id = $2",
       [X.espaco, Y.espaco],
-      RLS,
+      // Pela API só dá para mudar o próprio nome em membros.
+      /row-level security|permission denied/,
     );
   });
 
