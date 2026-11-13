@@ -117,7 +117,7 @@ function Conteudo({
   const encerrados = previa?.itens.filter((i) => i.situacao === "parcela_encerrada") ?? [];
 
   return (
-    <DialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto">
+    <DialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto sm:max-w-lg">
       <DialogHeader>
         <DialogTitle>Criar próximo ciclo</DialogTitle>
         <DialogDescription>
@@ -213,7 +213,7 @@ function Conteudo({
         </p>
       )}
 
-      <DialogFooter>
+      <DialogFooter className="sticky bottom-0 bg-popover">
         <Button
           className="h-10"
           onClick={criar}

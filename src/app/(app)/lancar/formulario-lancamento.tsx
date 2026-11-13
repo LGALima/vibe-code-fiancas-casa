@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useEffectEvent, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -71,46 +71,71 @@ export function FormularioLancamento({ espacoId, hoje, ciclos, categorias, forma
   const base = origem?.lancamento;
 
   const schema = useMemo(() => lancamentoSchema(ciclos), [ciclos]);
-  const {
-    register,
-    control,
-    handleSubmit,
-    setValue,
-    getValues,
-    formState: { errors, isSubmitting },
-  } = useForm<LancamentoEntrada, unknown, LancamentoDados>({
-    resolver: zodResolver(schema),
-    defaultValues: {
+
+  function valoresIniciais(): LancamentoEntrada {
+    let formaId = base?.forma_pagamento_id ?? formaPadrao(formas);
+    // Num lançamento novo, volta para a última forma de pagamento usada.
+    if (!origem) {
+      const ultima = lerUltimaForma();
+      if (ultima && formas.some((f) => f.id === ultima && f.ativa)) formaId = ultima;
+    }
+    return {
       tipo: base?.tipo ?? "gasto",
       descricao: base?.descricao ?? "",
       estimativa: valorParaCampo(base?.estimativa),
       valorReal: valorParaCampo(base?.valor_real),
       categoriaId: base?.categoria_id ?? "",
-      formaId: base?.forma_pagamento_id ?? formaPadrao(formas),
+      formaId,
       data: origem?.modo === "editar" ? base!.data : hoje,
       recorrente: base?.recorrente ?? false,
       parcelado: base?.total_parcelas != null,
       totalParcelas: base?.total_parcelas ? String(base.total_parcelas) : "",
       parcelaAtual: base?.parcela_atual ? String(base.parcela_atual) : "1",
       observacao: base?.observacao ?? "",
+    };
+  }
+
+  const {
+    register,
+    control,
+    handleSubmit,
+    setValue,
+    getValues,
+    reset,
+    setFocus,
+    formState: { errors, isSubmitting },
+  } = useForm<LancamentoEntrada, unknown, LancamentoDados>({
+    resolver: zodResolver(schema),
+    defaultValues: {
+      ...valoresIniciais(),
+      // A última forma vem do localStorage, que só existe no navegador: entra
+      // no efeito abaixo para não divergir da renderização do servidor.
+      formaId: base?.forma_pagamento_id ?? formaPadrao(formas),
     },
   });
 
-  // Num lançamento novo, volta para a última forma de pagamento usada.
-  useEffect(() => {
+  // O Next guarda a tela anterior escondida, com o que foi digitado. Ao sair
+  // dela, o formulário volta aos valores iniciais e sem erros; ao reaparecer,
+  // um lançamento novo vem com a última forma usada e o cursor no valor.
+  const aparecer = useEffectEvent(() => {
     if (origem) return;
-    const ultima = lerUltimaForma();
-    if (ultima && formas.some((f) => f.id === ultima && f.ativa)) {
-      setValue("formaId", ultima);
-    }
-  }, [origem, formas, setValue]);
+    setValue("formaId", valoresIniciais().formaId);
+    setFocus("valorReal");
+  });
+  const sumir = useEffectEvent(() => {
+    reset(valoresIniciais());
+    setErro(undefined);
+    setSemCiclo(false);
+    setPerguntaParcelas(null);
+  });
+  useEffect(() => {
+    aparecer();
+    return () => sumir();
+  }, []);
 
   const tipo = useWatch({ control, name: "tipo" });
   const parcelado = useWatch({ control, name: "parcelado" });
   const categoriaId = useWatch({ control, name: "categoriaId" });
-  const [maisOpcoes, setMaisOpcoes] = useState(
-    Boolean(base && (base.recorrente || base.total_parcelas || base.observacao)),
-  );
 
   const categoriasDoTipo = categorias.filter(
     (c) => (c.ativa || c.id === base?.categoria_id) && (c.tipo === tipo || c.tipo === "ambos"),
@@ -380,88 +405,78 @@ export function FormularioLancamento({ espacoId, hoje, ciclos, categorias, forma
         />
       </div>
 
-      {!maisOpcoes ? (
-        <button
-          type="button"
-          onClick={() => setMaisOpcoes(true)}
-          className="self-start text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
-        >
-          Recorrente, parcelado e observação
-        </button>
-      ) : (
-        <div className="flex flex-col gap-4 rounded-xl border p-3">
-          <Controller
-            control={control}
-            name="parcelado"
-            render={({ field }) => (
-              <div className="flex items-center justify-between gap-4">
-                <Label htmlFor="parcelado" className="flex flex-col items-start gap-1">
-                  Parcelado
-                  <span className="text-xs font-normal text-muted-foreground">
-                    Uma parcela por ciclo.
-                  </span>
-                </Label>
-                <Switch
-                  id="parcelado"
-                  aria-label="Parcelado"
-                  checked={field.value}
-                  onCheckedChange={(v) => field.onChange(Boolean(v))}
-                />
-              </div>
-            )}
-          />
-          {parcelado && (
-            <div className="grid grid-cols-2 gap-3">
-              <Campo
-                id="parcela-atual"
-                rotulo="Parcela atual"
-                inputMode="numeric"
-                erro={errors.parcelaAtual?.message}
-                {...register("parcelaAtual")}
-              />
-              <Campo
-                id="total-parcelas"
-                rotulo="Total de parcelas"
-                inputMode="numeric"
-                placeholder="Ex.: 10"
-                erro={errors.totalParcelas?.message}
-                {...register("totalParcelas")}
+      <div className="flex flex-col gap-4 rounded-xl border p-3">
+        <Controller
+          control={control}
+          name="parcelado"
+          render={({ field }) => (
+            <div className="flex items-center justify-between gap-4">
+              <Label htmlFor="parcelado" className="flex flex-col items-start gap-1">
+                Parcelado
+                <span className="text-xs font-normal text-muted-foreground">
+                  Uma parcela por ciclo.
+                </span>
+              </Label>
+              <Switch
+                id="parcelado"
+                aria-label="Parcelado"
+                checked={field.value}
+                onCheckedChange={(v) => field.onChange(Boolean(v))}
               />
             </div>
           )}
-          <Controller
-            control={control}
-            name="recorrente"
-            render={({ field }) => (
-              <div className="flex items-center justify-between gap-4">
-                <Label htmlFor="recorrente" className="flex flex-col items-start gap-1">
-                  Recorrente
-                  <span className="text-xs font-normal text-muted-foreground">
-                    {parcelado
-                      ? "Parcelado é sempre recorrente."
-                      : "Copiado como previsto ao criar o próximo ciclo."}
-                  </span>
-                </Label>
-                <Switch
-                  id="recorrente"
-                  aria-label="Recorrente"
-                  checked={parcelado || field.value}
-                  disabled={parcelado}
-                  onCheckedChange={(v) => field.onChange(Boolean(v))}
-                />
-              </div>
-            )}
-          />
-          <Campo
-            id="observacao"
-            rotulo="Observação"
-            autoComplete="off"
-            placeholder="Ex.: emprestei para o João"
-            erro={errors.observacao?.message}
-            {...register("observacao")}
-          />
-        </div>
-      )}
+        />
+        {parcelado && (
+          <div className="grid grid-cols-2 gap-3">
+            <Campo
+              id="parcela-atual"
+              rotulo="Parcela atual"
+              inputMode="numeric"
+              erro={errors.parcelaAtual?.message}
+              {...register("parcelaAtual", { deps: "totalParcelas" })}
+            />
+            <Campo
+              id="total-parcelas"
+              rotulo="Total de parcelas"
+              inputMode="numeric"
+              placeholder="Ex.: 10"
+              erro={errors.totalParcelas?.message}
+              {...register("totalParcelas", { deps: "parcelaAtual" })}
+            />
+          </div>
+        )}
+        <Controller
+          control={control}
+          name="recorrente"
+          render={({ field }) => (
+            <div className="flex items-center justify-between gap-4">
+              <Label htmlFor="recorrente" className="flex flex-col items-start gap-1">
+                Recorrente
+                <span className="text-xs font-normal text-muted-foreground">
+                  {parcelado
+                    ? "Parcelado é sempre recorrente."
+                    : "Copiado como previsto ao criar o próximo ciclo."}
+                </span>
+              </Label>
+              <Switch
+                id="recorrente"
+                aria-label="Recorrente"
+                checked={parcelado || field.value}
+                disabled={parcelado}
+                onCheckedChange={(v) => field.onChange(Boolean(v))}
+              />
+            </div>
+          )}
+        />
+        <Campo
+          id="observacao"
+          rotulo="Observação"
+          autoComplete="off"
+          placeholder="Ex.: emprestei para o João"
+          erro={errors.observacao?.message}
+          {...register("observacao")}
+        />
+      </div>
 
       {erro && (
         <p role="alert" className="text-sm text-destructive">

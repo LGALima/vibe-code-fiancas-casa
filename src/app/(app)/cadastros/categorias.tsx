@@ -229,7 +229,7 @@ function FormularioCategoria({
   const travado = isSubmitting || ocupado;
 
   return (
-    <DialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto">
+    <DialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto sm:max-w-lg">
       <DialogHeader>
         <DialogTitle>{categoria ? "Editar categoria" : "Nova categoria"}</DialogTitle>
         <DialogDescription>
@@ -294,6 +294,7 @@ function FormularioCategoria({
             <Escolha
               rotulo="Ícone"
               variante="grade"
+              className="sm:grid-cols-10"
               opcoes={NOMES_ICONES.map((nome) => {
                 const { Icone, nome: rotulo } = ICONES[nome];
                 return { valor: nome, rotulo, conteudo: <Icone className="size-5" aria-hidden /> };
