@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Suspense } from "react";
 import { Plus } from "lucide-react";
+import { IconeLink } from "@/components/icone-link";
 import { Button } from "@/components/ui/button";
 import {
   carregarCadastros,
@@ -50,7 +51,10 @@ async function Conteudo({ searchParams }: { searchParams: PageProps<"/">["search
           Ainda não há ciclos. O ciclo é o seu &quot;mês&quot;: começa quando entra
           a 2ª parte do salário.
         </p>
-        <Button nativeButton={false} render={<Link href="/ciclos" />}>Criar o primeiro ciclo</Button>
+        <Button nativeButton={false} render={<Link href="/ciclos" />}>
+          <IconeLink />
+          Criar o primeiro ciclo
+        </Button>
       </div>
     );
   }
@@ -86,7 +90,9 @@ async function Conteudo({ searchParams }: { searchParams: PageProps<"/">["search
         className="fixed right-4 bottom-[calc(5rem+env(safe-area-inset-bottom))] z-30 size-14 rounded-full shadow-lg md:right-8 md:bottom-8"
         nativeButton={false} render={<Link href="/lancar" aria-label="Lançar" />}
       >
-        <Plus className="size-6" aria-hidden />
+        <IconeLink className="size-6">
+          <Plus className="size-6" aria-hidden />
+        </IconeLink>
       </Button>
     </>
   );

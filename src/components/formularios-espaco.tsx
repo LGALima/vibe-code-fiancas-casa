@@ -7,6 +7,7 @@ import { House, KeyRound } from "lucide-react";
 import { Campo } from "@/components/campo";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
+import { useNavegar } from "@/lib/use-navegar";
 import { cn } from "@/lib/utils";
 import {
   criarEspacoSchema,
@@ -19,8 +20,11 @@ import {
 type Modo = "criar" | "entrar";
 
 type PropsForm = {
-  /** Chamado depois que o espaço foi criado ou a pessoa entrou (ele já fica ativo). */
-  onConcluir: () => void;
+  /**
+   * Roda quando o Início do espaço novo já carregou (ex.: fechar o diálogo).
+   * O espaço criado ou em que a pessoa entrou já fica ativo.
+   */
+  onConcluir?: () => void;
   nomeEspacoPadrao?: string;
   nomeExibicaoPadrao?: string;
 };
@@ -66,6 +70,7 @@ export function CriarOuEntrarEspaco({
 }
 
 function CriarEspacoForm({ onConcluir, nomeEspacoPadrao, nomeExibicaoPadrao }: PropsForm) {
+  const { navegar, navegando } = useNavegar();
   const [erro, setErro] = useState<string>();
   const {
     register,
@@ -86,7 +91,7 @@ function CriarEspacoForm({ onConcluir, nomeEspacoPadrao, nomeExibicaoPadrao }: P
       setErro("Não foi possível criar o espaço. Tente de novo.");
       return;
     }
-    onConcluir();
+    navegar("/", { substituir: true, junto: onConcluir });
   }
 
   return (
@@ -114,8 +119,8 @@ function CriarEspacoForm({ onConcluir, nomeEspacoPadrao, nomeExibicaoPadrao }: P
         erro={errors.nomeExibicao?.message}
         {...register("nomeExibicao")}
       />
-      <Button type="submit" className="h-10 w-full" disabled={isSubmitting}>
-        {isSubmitting ? "Criando…" : "Criar espaço"}
+      <Button type="submit" className="h-10 w-full" carregando={isSubmitting || navegando}>
+        {isSubmitting || navegando ? "Criando…" : "Criar espaço"}
       </Button>
       {erro && (
         <p role="alert" className="text-sm text-destructive">
@@ -127,6 +132,7 @@ function CriarEspacoForm({ onConcluir, nomeEspacoPadrao, nomeExibicaoPadrao }: P
 }
 
 function EntrarEspacoForm({ onConcluir, nomeExibicaoPadrao }: PropsForm) {
+  const { navegar, navegando } = useNavegar();
   const [erro, setErro] = useState<string>();
   const {
     register,
@@ -151,7 +157,7 @@ function EntrarEspacoForm({ onConcluir, nomeExibicaoPadrao }: PropsForm) {
       );
       return;
     }
-    onConcluir();
+    navegar("/", { substituir: true, junto: onConcluir });
   }
 
   return (
@@ -182,8 +188,8 @@ function EntrarEspacoForm({ onConcluir, nomeExibicaoPadrao }: PropsForm) {
         erro={errors.nomeExibicao?.message}
         {...register("nomeExibicao")}
       />
-      <Button type="submit" className="h-10 w-full" disabled={isSubmitting}>
-        {isSubmitting ? "Entrando…" : "Entrar no espaço"}
+      <Button type="submit" className="h-10 w-full" carregando={isSubmitting || navegando}>
+        {isSubmitting || navegando ? "Entrando…" : "Entrar no espaço"}
       </Button>
       {erro && (
         <p role="alert" className="text-sm text-destructive">

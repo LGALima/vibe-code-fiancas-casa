@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { ArrowLeft, Plus } from "lucide-react";
 import { CriarOuEntrarEspaco } from "@/components/formularios-espaco";
 import { ListaEspacos, type EspacoOpcao } from "@/components/seletor-espaco";
@@ -25,7 +24,6 @@ export function EscolherEspaco({
   destino: string;
   nomeExibicaoPadrao: string;
 }) {
-  const router = useRouter();
   const [novo, setNovo] = useState(false);
 
   return (
@@ -44,10 +42,6 @@ export function EscolherEspaco({
             <CriarOuEntrarEspaco
               nomeEspacoPadrao=""
               nomeExibicaoPadrao={nomeExibicaoPadrao}
-              onConcluir={() => {
-                router.replace("/");
-                router.refresh();
-              }}
             />
             <Button variant="ghost" className="h-9 self-start" onClick={() => setNovo(false)}>
               <ArrowLeft aria-hidden />

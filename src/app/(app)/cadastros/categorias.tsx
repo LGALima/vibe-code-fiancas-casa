@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Controller, useForm } from "react-hook-form";
@@ -162,7 +162,10 @@ function FormularioCategoria({
 }) {
   const router = useRouter();
   const [erro, setErro] = useState<string>();
-  const [ocupado, setOcupado] = useState(false);
+  // A transição só termina com a lista já atualizada: até lá o botão da ação
+  // mostra que está trabalhando e o diálogo continua aberto.
+  const [ocupado, iniciar] = useTransition();
+  const [acao, setAcao] = useState<"salvar" | "alternar" | "excluir">("salvar");
   const {
     register,
     control,
@@ -184,22 +187,28 @@ function FormularioCategoria({
 
   const duplicada = "Já existe uma categoria com esse nome neste espaço.";
 
-  async function concluir(acao: () => PromiseLike<{ error: Parameters<typeof traduzirErroBanco>[0] | null }>) {
+  function concluir(
+    qual: typeof acao,
+    executar: () => PromiseLike<{ error: Parameters<typeof traduzirErroBanco>[0] | null }>,
+  ) {
     setErro(undefined);
-    setOcupado(true);
-    const { error } = await acao();
-    setOcupado(false);
-    if (error) {
-      setErro(traduzirErroBanco(error, duplicada));
-      return;
-    }
-    onConcluir();
-    router.refresh();
+    setAcao(qual);
+    iniciar(async () => {
+      const { error } = await executar();
+      if (error) {
+        setErro(traduzirErroBanco(error, duplicada));
+        return;
+      }
+      iniciar(() => {
+        router.refresh();
+        onConcluir();
+      });
+    });
   }
 
   function salvar(dados: CategoriaDados) {
     const supabase = createClient();
-    return concluir(() =>
+    concluir("salvar", () =>
       categoria
         ? supabase.from("categorias").update(dados).eq("id", categoria.id)
         : supabase.from("categorias").insert({ ...dados, espaco_id: espacoId }),
@@ -208,7 +217,7 @@ function FormularioCategoria({
 
   function alternarAtiva() {
     if (!categoria) return;
-    return concluir(() =>
+    concluir("alternar", () =>
       createClient()
         .from("categorias")
         .update({ ativa: !categoria.ativa })
@@ -221,12 +230,14 @@ function FormularioCategoria({
     if (!window.confirm(`Excluir a categoria "${categoria.nome}"? Isso não pode ser desfeito.`)) {
       return;
     }
-    return concluir(() =>
+    concluir("excluir", () =>
       createClient().from("categorias").delete().eq("id", categoria.id),
     );
   }
 
   const travado = isSubmitting || ocupado;
+  const emAndamento = (qual: typeof acao) => ocupado && acao === qual;
+  const salvando = isSubmitting || emAndamento("salvar");
 
   return (
     <DialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto sm:max-w-lg">
@@ -316,18 +327,38 @@ function FormularioCategoria({
       <DialogFooter className="gap-2">
         {categoria && (
           <div className="flex flex-1 gap-2">
-            <Button type="button" variant="outline" className="h-10" onClick={alternarAtiva} disabled={travado}>
-              {categoria.ativa ? "Desativar" : "Reativar"}
+            <Button
+              type="button"
+              variant="outline"
+              className="h-10"
+              onClick={alternarAtiva}
+              carregando={emAndamento("alternar")}
+              disabled={travado}
+            >
+              {emAndamento("alternar")
+                ? categoria.ativa
+                  ? "Desativando…"
+                  : "Reativando…"
+                : categoria.ativa
+                  ? "Desativar"
+                  : "Reativar"}
             </Button>
             {!categoria.emUso && (
-              <Button type="button" variant="destructive" className="h-10" onClick={excluir} disabled={travado}>
-                Excluir
+              <Button
+                type="button"
+                variant="destructive"
+                className="h-10"
+                onClick={excluir}
+                carregando={emAndamento("excluir")}
+                disabled={travado}
+              >
+                {emAndamento("excluir") ? "Excluindo…" : "Excluir"}
               </Button>
             )}
           </div>
         )}
-        <Button type="submit" form="form-categoria" className="h-10" disabled={travado}>
-          {isSubmitting ? "Salvando…" : "Salvar"}
+        <Button type="submit" form="form-categoria" className="h-10" carregando={salvando} disabled={travado}>
+          {salvando ? "Salvando…" : "Salvar"}
         </Button>
       </DialogFooter>
       {categoria?.emUso && (

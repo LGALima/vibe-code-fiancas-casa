@@ -1,6 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { CriarOuEntrarEspaco } from "@/components/formularios-espaco";
 import {
   Card,
@@ -11,8 +10,6 @@ import {
 } from "@/components/ui/card";
 
 export function BoasVindasForm() {
-  const router = useRouter();
-
   return (
     <Card className="w-full max-w-sm">
       <CardHeader>
@@ -23,13 +20,7 @@ export function BoasVindasForm() {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <CriarOuEntrarEspaco
-          rotuloCriar="Criar meu espaço"
-          onConcluir={() => {
-            router.replace("/");
-            router.refresh();
-          }}
-        />
+        <CriarOuEntrarEspaco rotuloCriar="Criar meu espaço" />
       </CardContent>
     </Card>
   );

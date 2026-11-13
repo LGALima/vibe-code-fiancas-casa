@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { Campo } from "@/components/campo";
@@ -14,6 +13,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/client";
+import { useNavegar } from "@/lib/use-navegar";
 import { traduzirErroAuth } from "@/lib/supabase/erros";
 import {
   redefinirSenhaSchema,
@@ -21,7 +21,7 @@ import {
 } from "@/lib/validacoes/auth";
 
 export function RedefinirSenhaForm() {
-  const router = useRouter();
+  const { navegar, navegando } = useNavegar();
   const [erro, setErro] = useState<string>();
   const {
     register,
@@ -40,8 +40,7 @@ export function RedefinirSenhaForm() {
       setErro(traduzirErroAuth(error));
       return;
     }
-    router.replace("/");
-    router.refresh();
+    navegar("/", { substituir: true });
   }
 
   return (
@@ -73,8 +72,8 @@ export function RedefinirSenhaForm() {
             erro={errors.confirmacao?.message}
             {...register("confirmacao")}
           />
-          <Button type="submit" className="h-10 w-full" disabled={isSubmitting}>
-            {isSubmitting ? "Salvando…" : "Salvar nova senha"}
+          <Button type="submit" className="h-10 w-full" carregando={isSubmitting || navegando}>
+            {isSubmitting || navegando ? "Salvando…" : "Salvar nova senha"}
           </Button>
           {erro && (
             <p role="alert" className="text-sm text-destructive">

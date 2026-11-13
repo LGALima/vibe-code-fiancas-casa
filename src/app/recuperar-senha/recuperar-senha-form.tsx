@@ -83,7 +83,7 @@ export function RecuperarSenhaForm() {
             <Button
               type="submit"
               className="h-10 w-full"
-              disabled={isSubmitting}
+              carregando={isSubmitting}
             >
               {isSubmitting ? "Enviando…" : "Enviar link"}
             </Button>

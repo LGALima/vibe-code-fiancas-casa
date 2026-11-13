@@ -1,6 +1,8 @@
 "use client";
 
+import { useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { Loader2 } from "lucide-react";
 import { Escolha } from "@/components/escolha";
 import { Label } from "@/components/ui/label";
 import type { Visao } from "@/lib/analises";
@@ -27,16 +29,29 @@ export function FiltrosAnalise({
 }) {
   const router = useRouter();
   const params = useSearchParams();
+  const [atualizando, iniciar] = useTransition();
 
   function mudar(chave: string, valor: string | null) {
     const novo = new URLSearchParams(params);
     if (valor) novo.set(chave, valor);
     else novo.delete(chave);
-    router.replace(`/analises?${novo.toString()}`, { scroll: false });
+    iniciar(() => router.replace(`/analises?${novo.toString()}`, { scroll: false }));
   }
 
   return (
-    <div className="flex flex-col gap-3 rounded-xl border p-3 md:grid md:grid-cols-[minmax(0,2fr)_minmax(15rem,1fr)] md:items-end md:gap-4">
+    <div
+      aria-busy={atualizando || undefined}
+      className="relative flex flex-col gap-3 rounded-xl border p-3 md:grid md:grid-cols-[minmax(0,2fr)_minmax(15rem,1fr)] md:items-end md:gap-4"
+    >
+      {atualizando && (
+        <span
+          className="absolute top-2 right-3 flex items-center gap-1 text-xs text-muted-foreground"
+          aria-live="polite"
+        >
+          <Loader2 className="size-3.5 animate-spin" aria-hidden />
+          Atualizando…
+        </span>
+      )}
       <div className="grid grid-cols-2 gap-3">
         <div className="flex flex-col gap-1">
           <Label htmlFor="filtro-ciclo" className="text-xs">

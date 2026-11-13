@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useEffectEvent, useMemo, useState } from "react";
+import { useEffect, useEffectEvent, useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -65,6 +65,10 @@ function formaPadrao(formas: FormaOpcao[]): string {
 
 export function FormularioLancamento({ espacoId, hoje, ciclos, categorias, formas, origem }: Props) {
   const router = useRouter();
+  // Salvar/excluir e a ida para o Início ficam numa transição: o botão só
+  // volta ao normal quando a próxima tela já apareceu.
+  const [ocupado, iniciar] = useTransition();
+  const [acao, setAcao] = useState<"salvar" | "excluir">("salvar");
   const [erro, setErro] = useState<string>();
   const [semCiclo, setSemCiclo] = useState(false);
   const editando = origem?.modo === "editar" ? origem.lancamento : null;
@@ -166,6 +170,7 @@ export function FormularioLancamento({ espacoId, hoje, ciclos, categorias, forma
   } | null>(null);
 
   async function salvar(d: LancamentoDados) {
+    setAcao("salvar");
     setErro(undefined);
     setSemCiclo(false);
     if (editando?.grupo_id && editando.parcela_atual && d.parcelado) {
@@ -240,21 +245,33 @@ export function FormularioLancamento({ espacoId, hoje, ciclos, categorias, forma
     }
 
     salvarUltimaForma(d.formaId);
-    router.push(`/?ciclo=${d.cicloId}`);
-    router.refresh();
+    iniciar(() => {
+      router.push(`/?ciclo=${d.cicloId}`);
+      router.refresh();
+    });
   }
 
-  async function excluir() {
+  function excluir() {
     if (!editando) return;
     if (!window.confirm(`Excluir "${editando.descricao}"? Isso não pode ser desfeito.`)) return;
-    const { error } = await createClient().from("lancamentos").delete().eq("id", editando.id);
-    if (error) {
-      setErro(traduzirErroBanco(error));
-      return;
-    }
-    router.push(`/?ciclo=${editando.ciclo_id}`);
-    router.refresh();
+    setAcao("excluir");
+    setErro(undefined);
+    iniciar(async () => {
+      const { error } = await createClient().from("lancamentos").delete().eq("id", editando.id);
+      if (error) {
+        setErro(traduzirErroBanco(error));
+        return;
+      }
+      iniciar(() => {
+        router.push(`/?ciclo=${editando.ciclo_id}`);
+        router.refresh();
+      });
+    });
   }
+
+  const salvando = isSubmitting || (ocupado && acao === "salvar");
+  const excluindo = ocupado && acao === "excluir";
+  const travado = salvando || excluindo;
 
   if (categorias.every((c) => !c.ativa) || formas.every((f) => !f.ativa)) {
     return (
@@ -491,12 +508,19 @@ export function FormularioLancamento({ espacoId, hoje, ciclos, categorias, forma
 
       <div className="sticky bottom-[calc(4.5rem+env(safe-area-inset-bottom))] z-10 md:bottom-0 flex gap-2 bg-background/95 py-2 backdrop-blur">
         {editando && (
-          <Button type="button" variant="destructive" className="h-12" onClick={excluir} disabled={isSubmitting}>
-            Excluir
+          <Button
+            type="button"
+            variant="destructive"
+            className="h-12"
+            onClick={excluir}
+            carregando={excluindo}
+            disabled={travado}
+          >
+            {excluindo ? "Excluindo…" : "Excluir"}
           </Button>
         )}
-        <Button type="submit" className="h-12 flex-1 text-base" disabled={isSubmitting}>
-          {isSubmitting ? "Salvando…" : editando ? "Salvar alterações" : "Salvar"}
+        <Button type="submit" className="h-12 flex-1 text-base" carregando={salvando} disabled={travado}>
+          {salvando ? "Salvando…" : editando ? "Salvar alterações" : "Salvar"}
         </Button>
       </div>
 
@@ -521,7 +545,8 @@ export function FormularioLancamento({ espacoId, hoje, ciclos, categorias, forma
                 onClick={() => {
                   const d = perguntaParcelas.dados;
                   setPerguntaParcelas(null);
-                  void gravar(d, "proximas");
+                  setAcao("salvar");
+                  iniciar(() => gravar(d, "proximas"));
                 }}
               >
                 Esta e as próximas ({perguntaParcelas.proximas})
@@ -533,7 +558,8 @@ export function FormularioLancamento({ espacoId, hoje, ciclos, categorias, forma
                 onClick={() => {
                   const d = perguntaParcelas.dados;
                   setPerguntaParcelas(null);
-                  void gravar(d, "esta");
+                  setAcao("salvar");
+                  iniciar(() => gravar(d, "esta"));
                 }}
               >
                 Só esta

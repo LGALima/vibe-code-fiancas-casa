@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { CalendarPlus, Repeat } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -76,7 +76,8 @@ function Conteudo({
   const [usarUltimoReal, setUsarUltimoReal] = useState(false);
   const [previa, setPrevia] = useState<Previa | null>(null);
   const [erro, setErro] = useState<string>();
-  const [criando, setCriando] = useState(false);
+  // Fica "Criando…" até o Início do ciclo novo aparecer.
+  const [criando, iniciar] = useTransition();
 
   useEffect(() => {
     let cancelado = false;
@@ -96,21 +97,23 @@ function Conteudo({
     };
   }, [cicloBase.id, usarUltimoReal]);
 
-  async function criar() {
-    setCriando(true);
+  function criar() {
     setErro(undefined);
-    const { data, error } = await createClient().rpc("criar_proximo_ciclo", {
-      p_ciclo_id: cicloBase.id,
-      p_usar_ultimo_real: usarUltimoReal,
+    iniciar(async () => {
+      const { data, error } = await createClient().rpc("criar_proximo_ciclo", {
+        p_ciclo_id: cicloBase.id,
+        p_usar_ultimo_real: usarUltimoReal,
+      });
+      if (error) {
+        setErro(error.code === "P0001" ? error.message : "Não foi possível criar o ciclo. Tente de novo.");
+        return;
+      }
+      iniciar(() => {
+        router.push(`/?ciclo=${data}`);
+        router.refresh();
+        onConcluir();
+      });
     });
-    setCriando(false);
-    if (error) {
-      setErro(error.code === "P0001" ? error.message : "Não foi possível criar o ciclo. Tente de novo.");
-      return;
-    }
-    onConcluir();
-    router.push(`/?ciclo=${data}`);
-    router.refresh();
   }
 
   const copiados = previa?.itens.filter((i) => i.situacao !== "parcela_encerrada") ?? [];
@@ -217,7 +220,8 @@ function Conteudo({
         <Button
           className="h-10"
           onClick={criar}
-          disabled={!previa || Boolean(previa.conflito) || criando}
+          disabled={!previa || Boolean(previa.conflito)}
+          carregando={criando}
         >
           {criando ? "Criando…" : previa ? `Criar ${previa.nome}` : "Criar"}
         </Button>
