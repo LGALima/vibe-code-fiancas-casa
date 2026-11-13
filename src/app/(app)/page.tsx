@@ -7,11 +7,13 @@ import {
   carregarCiclos,
   carregarLancamentosDoCiclo,
   carregarMembros,
+  carregarResumo,
 } from "@/lib/dados";
 import { cicloInicial } from "@/lib/dominio/ciclos";
 import { hoje } from "@/lib/dominio/datas";
 import { obterEspacoAtivo } from "@/lib/espaco";
 import { ListaLancamentos } from "./lista-lancamentos";
+import { ResumoCiclo } from "./resumo-ciclo";
 import { SeletorCiclo } from "./seletor-ciclo";
 
 export default function InicioPage({ searchParams }: PageProps<"/">) {
@@ -37,7 +39,8 @@ async function Conteudo({ searchParams }: { searchParams: PageProps<"/">["search
     carregarMembros(espaco.id),
   ]);
 
-  const ciclo = ciclos.find((c) => c.id === pedido) ?? cicloInicial(ciclos, hoje());
+  const dataHoje = hoje();
+  const ciclo = ciclos.find((c) => c.id === pedido) ?? cicloInicial(ciclos, dataHoje);
 
   if (!ciclo) {
     return (
@@ -51,11 +54,15 @@ async function Conteudo({ searchParams }: { searchParams: PageProps<"/">["search
     );
   }
 
-  const lancamentos = await carregarLancamentosDoCiclo(espaco.id, ciclo.id);
+  const [lancamentos, resumo] = await Promise.all([
+    carregarLancamentosDoCiclo(espaco.id, ciclo.id),
+    carregarResumo(ciclo.id),
+  ]);
 
   return (
     <>
       <SeletorCiclo ciclos={ciclos} atualId={ciclo.id} />
+      <ResumoCiclo resumo={resumo} ciclo={ciclo} hoje={dataHoje} />
       <ListaLancamentos
         key={ciclo.id}
         lancamentos={lancamentos}

@@ -333,7 +333,24 @@ export type Database = {
       };
     };
     Views: {
-      [_ in never]: never;
+      resumo_ciclo: {
+        Row: {
+          ciclo_id: string | null;
+          espaco_id: string | null;
+          nome: string | null;
+          data_inicio: string | null;
+          data_fim: string | null;
+          ganhos_previsto: number | null;
+          ganhos_realizado: number | null;
+          gastos_previsto: number | null;
+          gastos_realizado: number | null;
+          saldo_previsto: number | null;
+          saldo_realizado: number | null;
+          qtd_lancamentos: number | null;
+          qtd_previstos: number | null;
+        };
+        Relationships: [];
+      };
     };
     Functions: {
       ciclo_da_data: {
