@@ -240,7 +240,11 @@ export function ListaLancamentos({
                 +{formatarBRL(totais.ganhos)} em ganhos
               </span>
             ),
-            totais.gastos > 0 && <span key="d">{formatarBRL(totais.gastos)} em gastos</span>,
+            totais.gastos > 0 && (
+              <span key="d" className="text-red-600 dark:text-red-400">
+                −{formatarBRL(totais.gastos)} em gastos
+              </span>
+            ),
           ]
             .filter(Boolean)
             .flatMap((parte, i) => (i === 0 ? [parte] : [" · ", parte]))}
