@@ -234,6 +234,7 @@ function Formulario({
               </Label>
               <Switch
                 id="eh-credito"
+                aria-label="É crédito"
                 checked={field.value}
                 onCheckedChange={(v) => field.onChange(Boolean(v))}
               />

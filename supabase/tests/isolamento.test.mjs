@@ -282,7 +282,9 @@ describe("usuário fora do espaço (Caio)", () => {
          (espaco_id, ciclo_id, tipo, descricao, valor_real, categoria_id, forma_pagamento_id, data)
        values ($1, $2, 'gasto', 'x', 1, $3, $4, '2026-12-11')`,
       [X.espaco, X.ciclo, X.categoria, X.forma],
-      RLS,
+      // O trigger que acha o ciclo pela data roda antes do RLS e, com o RLS
+      // do Caio, não enxerga os ciclos da Casa A: recusa do mesmo jeito.
+      /row-level security|Não há ciclo/,
     );
   });
 
@@ -319,9 +321,21 @@ describe("usuário fora do espaço (Caio)", () => {
     const base = `insert into public.lancamentos
       (espaco_id, ciclo_id, tipo, descricao, valor_real, categoria_id, forma_pagamento_id, data)
       values ($1, $2, 'gasto', 'x', 1, $3, $4, '2026-12-11')`;
-    await falha(base, [Y.espaco, X.ciclo, Y.categoria, Y.forma], /foreign key/);
     await falha(base, [Y.espaco, Y.ciclo, X.categoria, Y.forma], /foreign key/);
     await falha(base, [Y.espaco, Y.ciclo, Y.categoria, X.forma], /foreign key/);
+
+    // O ciclo vem da data: um ciclo_id da Casa A é ignorado e o lançamento
+    // cai no ciclo da própria Casa C.
+    const l = (
+      await db.query(base + " returning id, ciclo_id", [
+        Y.espaco,
+        X.ciclo,
+        Y.categoria,
+        Y.forma,
+      ])
+    ).rows[0];
+    assert.equal(l.ciclo_id, Y.ciclo);
+    await db.query("delete from public.lancamentos where id = $1", [l.id]);
   });
 
   test("não entra com código errado", async () => {

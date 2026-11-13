@@ -1,12 +1,75 @@
-import { House } from "lucide-react";
-import { PaginaVazia } from "@/components/pagina-vazia";
+import Link from "next/link";
+import { Suspense } from "react";
+import { Plus } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  carregarCadastros,
+  carregarCiclos,
+  carregarLancamentosDoCiclo,
+  carregarMembros,
+} from "@/lib/dados";
+import { cicloInicial } from "@/lib/dominio/ciclos";
+import { hoje } from "@/lib/dominio/datas";
+import { obterEspacoAtivo } from "@/lib/espaco";
+import { ListaLancamentos } from "./lista-lancamentos";
+import { SeletorCiclo } from "./seletor-ciclo";
 
-export default function InicioPage() {
+export default function InicioPage({ searchParams }: PageProps<"/">) {
   return (
-    <PaginaVazia
-      titulo="Início"
-      descricao="Aqui vão aparecer os totais do ciclo atual e os lançamentos."
-      Icone={House}
-    />
+    <section className="flex flex-col gap-4">
+      <h1 className="sr-only">Início</h1>
+      <Suspense fallback={<div className="h-96 animate-pulse rounded-xl bg-muted" />}>
+        <Conteudo searchParams={searchParams} />
+      </Suspense>
+    </section>
+  );
+}
+
+async function Conteudo({ searchParams }: { searchParams: PageProps<"/">["searchParams"] }) {
+  const espaco = await obterEspacoAtivo();
+  if (!espaco) return null;
+  const params = await searchParams;
+  const pedido = Array.isArray(params.ciclo) ? params.ciclo[0] : params.ciclo;
+
+  const [ciclos, cadastros, membros] = await Promise.all([
+    carregarCiclos(espaco.id),
+    carregarCadastros(espaco.id),
+    carregarMembros(espaco.id),
+  ]);
+
+  const ciclo = ciclos.find((c) => c.id === pedido) ?? cicloInicial(ciclos, hoje());
+
+  if (!ciclo) {
+    return (
+      <div className="flex flex-col items-center gap-4 rounded-xl border border-dashed px-6 py-12 text-center">
+        <p className="text-sm text-muted-foreground">
+          Ainda não há ciclos. O ciclo é o seu &quot;mês&quot;: começa quando entra
+          a 2ª parte do salário.
+        </p>
+        <Button nativeButton={false} render={<Link href="/ciclos" />}>Criar o primeiro ciclo</Button>
+      </div>
+    );
+  }
+
+  const lancamentos = await carregarLancamentosDoCiclo(espaco.id, ciclo.id);
+
+  return (
+    <>
+      <SeletorCiclo ciclos={ciclos} atualId={ciclo.id} />
+      <ListaLancamentos
+        key={ciclo.id}
+        lancamentos={lancamentos}
+        categorias={cadastros.categorias}
+        formas={cadastros.formas}
+        membros={membros}
+        userId={espaco.userId}
+      />
+      <Button
+        className="fixed right-4 bottom-[calc(5rem+env(safe-area-inset-bottom))] z-30 size-14 rounded-full shadow-lg"
+        nativeButton={false} render={<Link href="/lancar" aria-label="Lançar" />}
+      >
+        <Plus className="size-6" aria-hidden />
+      </Button>
+    </>
   );
 }
