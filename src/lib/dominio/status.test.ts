@@ -5,6 +5,7 @@ import {
   calcularStatus,
   diferenca,
   resumirPendentes,
+  somarPorTipo,
   valorPrevisto,
 } from "./status";
 
@@ -105,5 +106,22 @@ describe("resumirPendentes", () => {
 
   test("sem pendentes", () => {
     expect(resumirPendentes([], "2026-12-10")).toEqual({ quantidade: 0, gastos: 0, ganhos: 0, maisAntigo: null });
+  });
+});
+
+describe("somarPorTipo", () => {
+  test("usa o valor real quando há, senão a estimativa", () => {
+    expect(
+      somarPorTipo([
+        { tipo: "gasto", estimativa: 100, valor_real: 90.1 },
+        { tipo: "gasto", estimativa: 50.2, valor_real: null },
+        { tipo: "gasto", estimativa: null, valor_real: 10 },
+        { tipo: "ganho", estimativa: 1000, valor_real: null },
+      ]),
+    ).toEqual({ ganhos: 1000, gastos: 150.3 });
+  });
+
+  test("lista vazia", () => {
+    expect(somarPorTipo([])).toEqual({ ganhos: 0, gastos: 0 });
   });
 });

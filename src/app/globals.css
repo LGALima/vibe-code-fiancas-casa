@@ -157,4 +157,15 @@
   html {
     @apply font-sans;
   }
+  /*
+   * A lista aberta de um <select> é desenhada pelo sistema. Os selects do app
+   * têm fundo transparente e herdam a cor do texto; no Chrome/Windows a lista
+   * fica com fundo branco e, no tema escuro, texto quase branco: some tudo.
+   * Fundo e texto explícitos nas opções resolvem nos dois temas.
+   */
+  select option,
+  select optgroup {
+    background-color: var(--popover);
+    color: var(--popover-foreground);
+  }
 }

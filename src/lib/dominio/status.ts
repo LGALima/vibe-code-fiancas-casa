@@ -83,3 +83,20 @@ export function resumirPendentes(lancamentos: readonly ParaConfirmar[], hoje: st
   r.ganhos = Math.round(r.ganhos * 100) / 100;
   return r;
 }
+
+/**
+ * Soma ganhos e gastos de uma lista (ex.: o que sobrou depois dos filtros).
+ * Cada lançamento entra pelo valor real, se houver; senão pela estimativa.
+ */
+export function somarPorTipo(lancamentos: readonly (Valores & { tipo: TipoLancamento })[]): {
+  ganhos: number;
+  gastos: number;
+} {
+  let ganhos = 0;
+  let gastos = 0;
+  for (const l of lancamentos) {
+    if (l.tipo === "ganho") ganhos += valorPrevisto(l);
+    else gastos += valorPrevisto(l);
+  }
+  return { ganhos: Math.round(ganhos * 100) / 100, gastos: Math.round(gastos * 100) / 100 };
+}

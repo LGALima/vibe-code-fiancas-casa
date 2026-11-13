@@ -8,6 +8,7 @@ import {
   Clock,
   Copy,
   Pencil,
+  Search,
   SlidersHorizontal,
   Trash2,
   X,
@@ -26,6 +27,7 @@ import { Label } from "@/components/ui/label";
 import { IconeCategoria } from "@/components/icone-categoria";
 import { PainelConfirmarExclusao } from "@/components/confirmar-exclusao";
 import type { CategoriaOpcao, FormaOpcao, Lancamento, Membro } from "@/lib/dados";
+import { combinaComBusca } from "@/lib/dominio/busca";
 import { formatarData, formatarDiaDaLista } from "@/lib/dominio/datas";
 import {
   formatarBRL,
@@ -40,6 +42,7 @@ import {
   avaliarDiferenca,
   resumirPendentes,
   calcularStatus,
+  somarPorTipo,
   diferenca,
   type Status,
 } from "@/lib/dominio/status";
@@ -55,6 +58,8 @@ type Filtros = {
   pessoa: string;
   /** Só os previstos com data até hoje ainda sem valor real. */
   pendentes: boolean;
+  /** Texto da busca por descrição. */
+  busca: string;
 };
 
 const SEM_FILTRO: Filtros = {
@@ -64,6 +69,7 @@ const SEM_FILTRO: Filtros = {
   status: "",
   pessoa: "",
   pendentes: false,
+  busca: "",
 };
 
 type Props = {
@@ -108,19 +114,22 @@ export function ListaLancamentos({
       (!filtros.forma || l.forma_pagamento_id === filtros.forma) &&
       (!filtros.status || calcularStatus(l) === filtros.status) &&
       (!filtros.pessoa || l.criado_por === filtros.pessoa) &&
-      (!filtros.pendentes || aguardaConfirmacao(l, hoje)),
+      (!filtros.pendentes || aguardaConfirmacao(l, hoje)) &&
+      combinaComBusca(l.descricao, filtros.busca),
   );
+  const totais = somarPorTipo(filtrados);
   const pendentes = useMemo(() => resumirPendentes(lancamentos, hoje), [lancamentos, hoje]);
 
-  const grupos = useMemo(() => {
-    const porDia = new Map<string, Lancamento[]>();
-    for (const l of filtrados) {
-      porDia.set(l.data, [...(porDia.get(l.data) ?? []), l]);
-    }
-    return [...porDia.entries()];
-  }, [filtrados]);
+  const porDia = new Map<string, Lancamento[]>();
+  for (const l of filtrados) {
+    porDia.set(l.data, [...(porDia.get(l.data) ?? []), l]);
+  }
+  const grupos = [...porDia.entries()];
 
-  const ativos = Object.values(filtros).filter(Boolean).length;
+  // Tudo o que restringe a lista (para "Limpar" e para os totais)…
+  const algumFiltro = Object.values(filtros).some((v) => (typeof v === "string" ? v.trim() : v));
+  // …e só o que fica no painel "Filtros" (a busca tem o próprio campo).
+  const ativos = Object.entries(filtros).filter(([k, v]) => k !== "busca" && v).length;
 
   return (
     <div className="flex flex-col gap-4">
@@ -131,6 +140,34 @@ export function ListaLancamentos({
           onAlternar={() => setFiltros({ ...filtros, pendentes: !filtros.pendentes })}
         />
       )}
+      <div className="relative">
+        <Search
+          className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
+          aria-hidden
+        />
+        <Input
+          type="search"
+          inputMode="search"
+          enterKeyHint="search"
+          autoComplete="off"
+          aria-label="Buscar lançamentos por descrição"
+          placeholder="Buscar por descrição"
+          className="h-10 pr-9 pl-9 text-base [&::-webkit-search-cancel-button]:hidden"
+          value={filtros.busca}
+          onChange={(e) => setFiltros({ ...filtros, busca: e.target.value })}
+        />
+        {filtros.busca && (
+          <button
+            type="button"
+            onClick={() => setFiltros({ ...filtros, busca: "" })}
+            className="absolute top-1/2 right-2 flex size-7 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground outline-none hover:bg-muted hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
+            aria-label="Limpar busca"
+          >
+            <X className="size-4" aria-hidden />
+          </button>
+        )}
+      </div>
+
       <div className="flex items-center justify-between gap-2">
         <h2 className="text-sm font-medium text-muted-foreground">
           {filtrados.length === lancamentos.length
@@ -138,7 +175,7 @@ export function ListaLancamentos({
             : `${filtrados.length} de ${lancamentos.length}`}
         </h2>
         <div className="flex gap-1">
-          {ativos > 0 && (
+          {algumFiltro && (
             <Button variant="ghost" size="sm" onClick={() => setFiltros(SEM_FILTRO)}>
               <X aria-hidden />
               Limpar
@@ -194,6 +231,26 @@ export function ListaLancamentos({
         </div>
       )}
 
+      {algumFiltro && filtrados.length > 0 && (totais.ganhos > 0 || totais.gastos > 0) && (
+        <p className="-mt-2 px-1 text-xs text-muted-foreground tabular-nums" aria-live="polite">
+          Total filtrado:{" "}
+          {[
+            totais.ganhos > 0 && (
+              <span key="g" className="text-emerald-600 dark:text-emerald-400">
+                +{formatarBRL(totais.ganhos)} em ganhos
+              </span>
+            ),
+            totais.gastos > 0 && (
+              <span key="d" className="text-red-600 dark:text-red-400">
+                −{formatarBRL(totais.gastos)} em gastos
+              </span>
+            ),
+          ]
+            .filter(Boolean)
+            .flatMap((parte, i) => (i === 0 ? [parte] : [" · ", parte]))}
+        </p>
+      )}
+
       {lancamentos.length === 0 ? (
         <div className="rounded-xl border border-dashed px-6 py-10 text-center text-sm text-muted-foreground">
           Nenhum lançamento neste ciclo.{" "}
@@ -203,7 +260,9 @@ export function ListaLancamentos({
         </div>
       ) : filtrados.length === 0 ? (
         <p className="py-6 text-center text-sm text-muted-foreground">
-          Nenhum lançamento com esses filtros.
+          {filtros.busca.trim()
+            ? `Nenhum lançamento com “${filtros.busca.trim()}”${ativos > 0 ? " nesses filtros" : ""}.`
+            : "Nenhum lançamento com esses filtros."}
         </p>
       ) : (
         grupos.map(([data, itens]) => (
