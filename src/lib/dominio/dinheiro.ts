@@ -46,3 +46,29 @@ export function valorParaCampo(valor: number | null | undefined): string {
   if (valor === null || valor === undefined) return "";
   return valor.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
+
+/** Até R$ 9.999.999.999,99: o limite de numeric(12,2) no banco. */
+const MAX_DIGITOS = 12;
+
+/**
+ * Máscara de valor que preenche da direita, como em app de banco: os dois
+ * últimos dígitos são os centavos. "7890" → "78,90", "7" → "0,07",
+ * "123456" → "1.234,56". Ignora o que não for dígito; vazio continua vazio.
+ */
+export function mascararCentavos(texto: string): string {
+  const digitos = texto.replace(/\D/g, "").replace(/^0+(?=\d)/, "").slice(0, MAX_DIGITOS);
+  if (digitos === "") return "";
+  const centavos = digitos.padStart(3, "0");
+  const inteiro = centavos.slice(0, -2).replace(/^0+(?=\d)/, "");
+  const milhar = inteiro.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  return `${milhar},${centavos.slice(-2)}`;
+}
+
+/**
+ * Texto colado no campo ("R$ 1.234,5", "12.50", "120"): lê como valor e já
+ * devolve mascarado. Se não der para ler, cai na máscara dígito a dígito.
+ */
+export function mascararColado(texto: string): string {
+  const valor = lerValor(texto);
+  return valor === null ? mascararCentavos(texto) : valorParaCampo(valor);
+}

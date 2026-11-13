@@ -21,7 +21,7 @@ import { Switch } from "@/components/ui/switch";
 import { IconeCategoria } from "@/components/icone-categoria";
 import { DialogoConfirmarExclusao } from "@/components/confirmar-exclusao";
 import type { CategoriaOpcao, Ciclo, FormaOpcao, Lancamento } from "@/lib/dados";
-import { valorParaCampo } from "@/lib/dominio/dinheiro";
+import { mascararCentavos, mascararColado, valorParaCampo } from "@/lib/dominio/dinheiro";
 import { createClient } from "@/lib/supabase/client";
 import { traduzirErroBanco } from "@/lib/supabase/erros";
 import { cn } from "@/lib/utils";
@@ -144,6 +144,25 @@ export function FormularioLancamento({ espacoId, hoje, ciclos, categorias, forma
     aparecer();
     return () => sumir();
   }, []);
+
+  // Valor com máscara: os dígitos entram pela direita e os dois últimos são os
+  // centavos (digitar 7890 mostra 78,90). Colar "R$ 1.234,5" vira 1.234,50.
+  function campoValor(nome: "valorReal" | "estimativa") {
+    const campo = register(nome);
+    return {
+      ...campo,
+      onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
+        e.target.value = mascararCentavos(e.target.value);
+        return campo.onChange(e);
+      },
+      onPaste: (e: React.ClipboardEvent<HTMLInputElement>) => {
+        e.preventDefault();
+        const input = e.currentTarget;
+        input.value = mascararColado(e.clipboardData.getData("text"));
+        void campo.onChange({ target: input, type: "change" });
+      },
+    };
+  }
 
   const tipo = useWatch({ control, name: "tipo" });
   const parcelado = useWatch({ control, name: "parcelado" });
@@ -309,23 +328,23 @@ export function FormularioLancamento({ espacoId, hoje, ciclos, categorias, forma
         <Campo
           id="valor-real"
           rotulo="Valor real"
-          inputMode="decimal"
+          inputMode="numeric"
           autoComplete="off"
           placeholder="0,00"
           autoFocus={!origem}
           className="h-12 text-xl font-semibold tabular-nums"
           erro={errors.valorReal?.message}
-          {...register("valorReal")}
+          {...campoValor("valorReal")}
         />
         <Campo
           id="estimativa"
           rotulo="Estimativa"
-          inputMode="decimal"
+          inputMode="numeric"
           autoComplete="off"
           placeholder="opcional"
           className="h-12 text-xl tabular-nums"
           erro={errors.estimativa?.message}
-          {...register("estimativa")}
+          {...campoValor("estimativa")}
         />
       </div>
 
