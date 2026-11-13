@@ -336,6 +336,13 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
+      ciclo_da_data: {
+        Args: {
+          p_espaco_id: string;
+          p_data: string;
+        };
+        Returns: string;
+      };
       criar_espaco: {
         Args: {
           p_nome: string;
