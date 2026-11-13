@@ -41,10 +41,10 @@ export function podeGastarPorDia(saldoPrevisto: number, dias: number): number | 
 }
 
 /**
- * Quanto do previsto de gastos já foi realizado (0,5 = metade).
+ * Quanto do previsto (de gastos ou de ganhos) já foi realizado (0,5 = metade).
  * Pode passar de 1 quando o realizado estoura o previsto.
  */
-export function progressoGastos(realizado: number, previsto: number): number {
+export function progressoDoPrevisto(realizado: number, previsto: number): number {
   if (previsto <= 0) return realizado > 0 ? 1 : 0;
   return realizado / previsto;
 }
