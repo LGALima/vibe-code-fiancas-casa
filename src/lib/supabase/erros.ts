@@ -1,4 +1,26 @@
-import type { AuthError } from "@supabase/supabase-js";
+import type { AuthError, PostgrestError } from "@supabase/supabase-js";
+
+/**
+ * Traduz um erro do banco (via API) para pt-BR.
+ * `nomeDuplicado` é a mensagem para quando o nome já existe no espaço.
+ */
+export function traduzirErroBanco(
+  error: PostgrestError,
+  nomeDuplicado = "Já existe um cadastro com esse nome.",
+): string {
+  switch (error.code) {
+    case "23505":
+      return nomeDuplicado;
+    case "23503":
+      return "Não dá para excluir: já existem lançamentos usando este cadastro. Desative em vez de excluir.";
+    case "23514":
+      return "Algum valor está fora do permitido. Confira os campos.";
+    case "42501":
+      return "Você não tem permissão para fazer isso neste espaço.";
+    default:
+      return "Não foi possível salvar. Tente de novo em instantes.";
+  }
+}
 
 const MENSAGENS: Record<string, string> = {
   invalid_credentials: "E-mail ou senha incorretos.",

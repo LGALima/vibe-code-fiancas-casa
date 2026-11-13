@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import { CreditCard, Users } from "lucide-react";
+import { Users } from "lucide-react";
 import { BotaoCopiar } from "@/components/botao-copiar";
 import {
   Card,
@@ -11,6 +11,9 @@ import {
 } from "@/components/ui/card";
 import { obterEspacoAtivo } from "@/lib/espaco";
 import { createClient } from "@/lib/supabase/server";
+import { Categorias, type Categoria } from "./categorias";
+import { Configuracoes } from "./configuracoes";
+import { FormasPagamento, type FormaPagamento } from "./formas-pagamento";
 
 export const metadata: Metadata = { title: "Cadastros · Finanças da Casa" };
 
@@ -25,12 +28,14 @@ export default function CadastrosPage() {
   );
 }
 
+const TIPOS = new Set(["gasto", "ganho", "ambos"]);
+
 async function Conteudo() {
   const espaco = await obterEspacoAtivo();
   if (!espaco) return null;
 
   const supabase = await createClient();
-  const [membros, categorias, formas] = await Promise.all([
+  const [membros, categorias, formas, configuracoes] = await Promise.all([
     supabase
       .from("membros")
       .select("user_id, nome_exibicao, criado_em")
@@ -38,23 +43,41 @@ async function Conteudo() {
       .order("criado_em"),
     supabase
       .from("categorias")
-      .select("id, nome, tipo, cor")
+      .select("id, nome, tipo, cor, icone, ativa, lancamentos(count)")
       .eq("espaco_id", espaco.id)
-      .eq("ativa", true)
       .order("nome"),
     supabase
       .from("formas_pagamento")
-      .select("id, nome, eh_credito")
+      .select("id, nome, eh_credito, ativa, lancamentos(count)")
       .eq("espaco_id", espaco.id)
-      .eq("ativa", true)
       .order("nome"),
+    supabase
+      .from("configuracoes")
+      .select("dia_inicio_ciclo, moeda")
+      .eq("espaco_id", espaco.id)
+      .maybeSingle(),
   ]);
 
-  const erro = membros.error ?? categorias.error ?? formas.error;
+  const erro = membros.error ?? categorias.error ?? formas.error ?? configuracoes.error;
   if (erro) throw new Error(`Não foi possível carregar os cadastros: ${erro.message}`);
+
   const listaMembros = membros.data ?? [];
-  const listaCategorias = categorias.data ?? [];
-  const listaFormas = formas.data ?? [];
+  const listaCategorias: Categoria[] = (categorias.data ?? []).map((c) => ({
+    id: c.id,
+    nome: c.nome,
+    tipo: (TIPOS.has(c.tipo) ? c.tipo : "ambos") as Categoria["tipo"],
+    cor: c.cor,
+    icone: c.icone,
+    ativa: c.ativa,
+    emUso: (c.lancamentos[0]?.count ?? 0) > 0,
+  }));
+  const listaFormas: FormaPagamento[] = (formas.data ?? []).map((f) => ({
+    id: f.id,
+    nome: f.nome,
+    ehCredito: f.eh_credito,
+    ativa: f.ativa,
+    emUso: (f.lancamentos[0]?.count ?? 0) > 0,
+  }));
 
   return (
     <>
@@ -98,50 +121,13 @@ async function Conteudo() {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Categorias</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ul className="flex flex-wrap gap-2">
-            {listaCategorias.map((c) => (
-              <li
-                key={c.id}
-                className="flex items-center gap-1.5 rounded-full border px-3 py-1 text-sm"
-              >
-                <span
-                  className="size-2.5 rounded-full"
-                  style={{ backgroundColor: c.cor ?? "var(--muted-foreground)" }}
-                  aria-hidden
-                />
-                {c.nome}
-                <span className="text-xs text-muted-foreground">
-                  {c.tipo === "ganho" ? "ganho" : c.tipo === "gasto" ? "gasto" : "ambos"}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Formas de pagamento</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ul className="flex flex-wrap gap-2">
-            {listaFormas.map((f) => (
-              <li
-                key={f.id}
-                className="flex items-center gap-1.5 rounded-full border px-3 py-1 text-sm"
-              >
-                {f.eh_credito && <CreditCard className="size-3.5" aria-hidden />}
-                {f.nome}
-              </li>
-            ))}
-          </ul>
-        </CardContent>
-      </Card>
+      <Categorias espacoId={espaco.id} categorias={listaCategorias} />
+      <FormasPagamento espacoId={espaco.id} formas={listaFormas} />
+      <Configuracoes
+        espacoId={espaco.id}
+        diaInicioCiclo={configuracoes.data?.dia_inicio_ciclo ?? 3}
+        moeda={configuracoes.data?.moeda ?? "BRL"}
+      />
     </>
   );
 }
