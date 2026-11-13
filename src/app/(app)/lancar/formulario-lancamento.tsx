@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useEffectEvent, useMemo, useState } from "react";
+import { useEffect, useEffectEvent, useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -19,6 +19,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { IconeCategoria } from "@/components/icone-categoria";
+import { DialogoConfirmarExclusao } from "@/components/confirmar-exclusao";
 import type { CategoriaOpcao, Ciclo, FormaOpcao, Lancamento } from "@/lib/dados";
 import { valorParaCampo } from "@/lib/dominio/dinheiro";
 import { createClient } from "@/lib/supabase/client";
@@ -65,8 +66,18 @@ function formaPadrao(formas: FormaOpcao[]): string {
 
 export function FormularioLancamento({ espacoId, hoje, ciclos, categorias, formas, origem }: Props) {
   const router = useRouter();
+  // Salvar/excluir e a ida para o Início ficam numa transição: o botão só
+  // volta ao normal quando a próxima tela já apareceu.
+  const [ocupado, iniciar] = useTransition();
+  const [acao, setAcao] = useState<"salvar" | "excluir">("salvar");
   const [erro, setErro] = useState<string>();
   const [semCiclo, setSemCiclo] = useState(false);
+  // Editar uma parcela: perguntar se vale só para ela ou também para as próximas.
+  const [perguntaParcelas, setPerguntaParcelas] = useState<{
+    dados: LancamentoDados;
+    proximas: number;
+  } | null>(null);
+  const [confirmandoExclusao, setConfirmandoExclusao] = useState(false);
   const editando = origem?.modo === "editar" ? origem.lancamento : null;
   const base = origem?.lancamento;
 
@@ -127,6 +138,7 @@ export function FormularioLancamento({ espacoId, hoje, ciclos, categorias, forma
     setErro(undefined);
     setSemCiclo(false);
     setPerguntaParcelas(null);
+    setConfirmandoExclusao(false);
   });
   useEffect(() => {
     aparecer();
@@ -159,13 +171,9 @@ export function FormularioLancamento({ espacoId, hoje, ciclos, categorias, forma
     }
   }
 
-  // Editar uma parcela: perguntar se vale só para ela ou também para as próximas.
-  const [perguntaParcelas, setPerguntaParcelas] = useState<{
-    dados: LancamentoDados;
-    proximas: number;
-  } | null>(null);
 
   async function salvar(d: LancamentoDados) {
+    setAcao("salvar");
     setErro(undefined);
     setSemCiclo(false);
     if (editando?.grupo_id && editando.parcela_atual && d.parcelado) {
@@ -240,21 +248,32 @@ export function FormularioLancamento({ espacoId, hoje, ciclos, categorias, forma
     }
 
     salvarUltimaForma(d.formaId);
-    router.push(`/?ciclo=${d.cicloId}`);
-    router.refresh();
+    iniciar(() => {
+      router.push(`/?ciclo=${d.cicloId}`);
+      router.refresh();
+    });
   }
 
-  async function excluir() {
+  function excluir() {
     if (!editando) return;
-    if (!window.confirm(`Excluir "${editando.descricao}"? Isso não pode ser desfeito.`)) return;
-    const { error } = await createClient().from("lancamentos").delete().eq("id", editando.id);
-    if (error) {
-      setErro(traduzirErroBanco(error));
-      return;
-    }
-    router.push(`/?ciclo=${editando.ciclo_id}`);
-    router.refresh();
+    setAcao("excluir");
+    setErro(undefined);
+    iniciar(async () => {
+      const { error } = await createClient().from("lancamentos").delete().eq("id", editando.id);
+      if (error) {
+        setErro(traduzirErroBanco(error));
+        return;
+      }
+      iniciar(() => {
+        router.push(`/?ciclo=${editando.ciclo_id}`);
+        router.refresh();
+      });
+    });
   }
+
+  const salvando = isSubmitting || (ocupado && acao === "salvar");
+  const excluindo = ocupado && acao === "excluir";
+  const travado = salvando || excluindo;
 
   if (categorias.every((c) => !c.ativa) || formas.every((f) => !f.ativa)) {
     return (
@@ -491,14 +510,43 @@ export function FormularioLancamento({ espacoId, hoje, ciclos, categorias, forma
 
       <div className="sticky bottom-[calc(4.5rem+env(safe-area-inset-bottom))] z-10 md:bottom-0 flex gap-2 bg-background/95 py-2 backdrop-blur">
         {editando && (
-          <Button type="button" variant="destructive" className="h-12" onClick={excluir} disabled={isSubmitting}>
+          <Button
+            type="button"
+            variant="destructive"
+            className="h-12"
+            onClick={() => {
+              setErro(undefined);
+              setConfirmandoExclusao(true);
+            }}
+            disabled={travado}
+          >
             Excluir
           </Button>
         )}
-        <Button type="submit" className="h-12 flex-1 text-base" disabled={isSubmitting}>
-          {isSubmitting ? "Salvando…" : editando ? "Salvar alterações" : "Salvar"}
+        <Button type="submit" className="h-12 flex-1 text-base" carregando={salvando} disabled={travado}>
+          {salvando ? "Salvando…" : editando ? "Salvar alterações" : "Salvar"}
         </Button>
       </div>
+
+      {editando && (
+        <DialogoConfirmarExclusao
+          aberto={confirmandoExclusao}
+          titulo={`Excluir "${editando.descricao}"?`}
+          descricao={
+            editando.grupo_id && editando.total_parcelas
+              ? `Só esta parcela (${editando.parcela_atual}/${editando.total_parcelas}) é excluída.`
+              : undefined
+          }
+          rotuloConfirmar="Excluir lançamento"
+          excluindo={excluindo}
+          erro={erro}
+          onConfirmar={excluir}
+          onCancelar={() => {
+            setErro(undefined);
+            setConfirmandoExclusao(false);
+          }}
+        />
+      )}
 
       <Dialog
         open={perguntaParcelas !== null}
@@ -521,7 +569,8 @@ export function FormularioLancamento({ espacoId, hoje, ciclos, categorias, forma
                 onClick={() => {
                   const d = perguntaParcelas.dados;
                   setPerguntaParcelas(null);
-                  void gravar(d, "proximas");
+                  setAcao("salvar");
+                  iniciar(() => gravar(d, "proximas"));
                 }}
               >
                 Esta e as próximas ({perguntaParcelas.proximas})
@@ -533,7 +582,8 @@ export function FormularioLancamento({ espacoId, hoje, ciclos, categorias, forma
                 onClick={() => {
                   const d = perguntaParcelas.dados;
                   setPerguntaParcelas(null);
-                  void gravar(d, "esta");
+                  setAcao("salvar");
+                  iniciar(() => gravar(d, "esta"));
                 }}
               >
                 Só esta

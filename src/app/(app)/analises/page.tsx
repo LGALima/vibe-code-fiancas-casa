@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
+import { IconeLink } from "@/components/icone-link";
 import { Button } from "@/components/ui/button";
 import type { Analise, PontoEvolucao, Visao } from "@/lib/analises";
 import { carregarCadastros, carregarCiclos, carregarMembros } from "@/lib/dados";
@@ -43,6 +44,7 @@ async function Conteudo({ searchParams }: { searchParams: PageProps<"/analises">
       <div className="flex flex-col items-center gap-4 rounded-xl border border-dashed px-6 py-12 text-center">
         <p className="text-sm text-muted-foreground">Ainda não há ciclos para analisar.</p>
         <Button nativeButton={false} render={<Link href="/ciclos" />}>
+          <IconeLink />
           Criar o primeiro ciclo
         </Button>
       </div>

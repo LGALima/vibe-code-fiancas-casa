@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { Campo } from "@/components/campo";
@@ -14,7 +14,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { destinoSeguro } from "@/lib/destino-seguro";
+import { depoisDoLogin, destinoSeguro } from "@/lib/destino-seguro";
+import { useNavegar } from "@/lib/use-navegar";
 import { createClient } from "@/lib/supabase/client";
 import { traduzirErroAuth } from "@/lib/supabase/erros";
 import {
@@ -125,7 +126,7 @@ function EntrarForm({
   next: string;
   erroInicial?: string;
 }) {
-  const router = useRouter();
+  const { navegar, navegando } = useNavegar();
   const [erro, setErro] = useState<string | undefined>(erroInicial);
   const {
     register,
@@ -143,8 +144,7 @@ function EntrarForm({
       setErro(traduzirErroAuth(error));
       return;
     }
-    router.replace(next);
-    router.refresh();
+    navegar(depoisDoLogin(next), { substituir: true });
   }
 
   return (
@@ -179,8 +179,8 @@ function EntrarForm({
           Esqueci minha senha
         </Link>
       </div>
-      <Button type="submit" className="h-10 w-full" disabled={isSubmitting}>
-        {isSubmitting ? "Entrando…" : "Entrar"}
+      <Button type="submit" className="h-10 w-full" carregando={isSubmitting || navegando}>
+        {isSubmitting || navegando ? "Entrando…" : "Entrar"}
       </Button>
       {erro && (
         <p role="alert" className="text-sm text-destructive">
@@ -198,7 +198,7 @@ function CadastroForm({
   next: string;
   onEnviado: (email: string) => void;
 }) {
-  const router = useRouter();
+  const { navegar, navegando } = useNavegar();
   const [erro, setErro] = useState<string>();
   const {
     register,
@@ -228,8 +228,7 @@ function CadastroForm({
     }
     if (data.session) {
       // Confirmação de e-mail desligada no Supabase: já entra direto.
-      router.replace(next);
-      router.refresh();
+      navegar(depoisDoLogin(next), { substituir: true });
       return;
     }
     onEnviado(email);
@@ -268,8 +267,8 @@ function CadastroForm({
         erro={errors.confirmacao?.message}
         {...register("confirmacao")}
       />
-      <Button type="submit" className="h-10 w-full" disabled={isSubmitting}>
-        {isSubmitting ? "Criando conta…" : "Criar conta"}
+      <Button type="submit" className="h-10 w-full" carregando={isSubmitting || navegando}>
+        {isSubmitting || navegando ? "Criando conta…" : "Criar conta"}
       </Button>
       {erro && (
         <p role="alert" className="text-sm text-destructive">

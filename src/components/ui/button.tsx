@@ -1,5 +1,6 @@
 import { Button as ButtonPrimitive } from "@base-ui/react/button"
 import { cva, type VariantProps } from "class-variance-authority"
+import { Loader2 } from "lucide-react"
 import { cn } from "cn"
 
 const buttonVariants = cva(
@@ -39,18 +40,37 @@ const buttonVariants = cva(
   }
 )
 
+/**
+ * `carregando`: mostra um ícone girando no lugar do ícone do botão, trava o
+ * clique e avisa leitores de tela (aria-busy). Passe o texto da ação em
+ * andamento como filho (ex.: "Salvando…").
+ */
 function Button({
   className,
   variant = "default",
   size = "default",
+  carregando = false,
+  disabled,
+  children,
   ...props
-}: ButtonPrimitive.Props & VariantProps<typeof buttonVariants>) {
+}: ButtonPrimitive.Props &
+  VariantProps<typeof buttonVariants> & { carregando?: boolean }) {
   return (
     <ButtonPrimitive
       data-slot="button"
-      className={cn(buttonVariants({ variant, size, className }))}
+      data-carregando={carregando || undefined}
+      aria-busy={carregando || undefined}
+      disabled={disabled || carregando}
+      className={cn(
+        buttonVariants({ variant, size }),
+        "data-carregando:cursor-progress data-carregando:opacity-80! data-carregando:[&>svg:not([data-spinner])]:hidden",
+        className
+      )}
       {...props}
-    />
+    >
+      {carregando && <Loader2 data-spinner="" className="animate-spin" aria-hidden />}
+      {children}
+    </ButtonPrimitive>
   )
 }
 

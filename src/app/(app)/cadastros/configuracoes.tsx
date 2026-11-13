@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -33,6 +33,7 @@ export function Configuracoes({
   moeda: string;
 }) {
   const router = useRouter();
+  const [atualizando, iniciar] = useTransition();
   const [mensagem, setMensagem] = useState<{ tipo: "ok" | "erro"; texto: string }>();
   const {
     register,
@@ -55,8 +56,10 @@ export function Configuracoes({
       return;
     }
     reset({ diaInicioCiclo: dia });
-    setMensagem({ tipo: "ok", texto: "Configurações salvas." });
-    router.refresh();
+    iniciar(() => {
+      router.refresh();
+      setMensagem({ tipo: "ok", texto: "Configurações salvas." });
+    });
   }
 
   return (
@@ -96,8 +99,13 @@ export function Configuracoes({
             <span className="font-medium">{moeda === "BRL" ? "Real (R$)" : moeda}</span>
           </div>
 
-          <Button type="submit" className="h-10" disabled={isSubmitting || !isDirty}>
-            {isSubmitting ? "Salvando…" : "Salvar"}
+          <Button
+            type="submit"
+            className="h-10"
+            carregando={isSubmitting || atualizando}
+            disabled={!isDirty}
+          >
+            {isSubmitting || atualizando ? "Salvando…" : "Salvar"}
           </Button>
           {mensagem && (
             <p

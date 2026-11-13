@@ -1,9 +1,9 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Clock, Copy, Pencil, SlidersHorizontal, Trash2, X } from "lucide-react";
+import { Clock, Copy, Pencil, SlidersHorizontal, Trash2, X, type LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -15,6 +15,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { IconeCategoria } from "@/components/icone-categoria";
+import { PainelConfirmarExclusao } from "@/components/confirmar-exclusao";
 import type { CategoriaOpcao, FormaOpcao, Lancamento, Membro } from "@/lib/dados";
 import { formatarData, formatarDiaDaLista } from "@/lib/dominio/datas";
 import { formatarBRL, formatarDiferenca, lerValor } from "@/lib/dominio/dinheiro";
@@ -350,20 +351,45 @@ function Acoes({
 }) {
   const router = useRouter();
   const [erro, setErro] = useState<string>();
-  const [excluindo, setExcluindo] = useState(false);
+  // A transição só termina quando a lista já voltou atualizada: até lá o
+  // botão mostra "Excluindo…" e o diálogo continua aberto.
+  const [excluindo, iniciar] = useTransition();
   const status = calcularStatus(l);
 
-  async function excluir() {
-    if (!window.confirm(`Excluir "${l.descricao}"? Isso não pode ser desfeito.`)) return;
-    setExcluindo(true);
-    const { error } = await createClient().from("lancamentos").delete().eq("id", l.id);
-    setExcluindo(false);
-    if (error) {
-      setErro(traduzirErroBanco(error));
-      return;
-    }
-    onFechar();
-    router.refresh();
+  const [confirmandoExclusao, setConfirmandoExclusao] = useState(false);
+
+  function excluir() {
+    setErro(undefined);
+    iniciar(async () => {
+      const { error } = await createClient().from("lancamentos").delete().eq("id", l.id);
+      if (error) {
+        setErro(traduzirErroBanco(error));
+        return;
+      }
+      iniciar(() => {
+        router.refresh();
+        onFechar();
+      });
+    });
+  }
+
+  if (confirmandoExclusao) {
+    return (
+      <DialogContent>
+        <PainelConfirmarExclusao
+          titulo={`Excluir "${l.descricao}"?`}
+          descricao={`${formatarData(l.data)}${l.valor_real !== null ? ` · ${formatarBRL(l.valor_real)}` : l.estimativa !== null ? ` · ${formatarBRL(l.estimativa)}` : ""}.`}
+          rotuloConfirmar="Excluir lançamento"
+          excluindo={excluindo}
+          erro={erro}
+          onConfirmar={excluir}
+          onCancelar={() => {
+            setErro(undefined);
+            setConfirmandoExclusao(false);
+          }}
+        />
+      </DialogContent>
+    );
   }
 
   return (
@@ -384,17 +410,11 @@ function Acoes({
             Confirmar valor
           </Button>
         )}
-        <Button variant="outline" className="h-11 justify-start" nativeButton={false} onClick={onFechar} render={<Link href={`/lancar?editar=${l.id}`} />}>
-          <Pencil aria-hidden />
-          Editar
-        </Button>
-        <Button variant="outline" className="h-11 justify-start" nativeButton={false} onClick={onFechar} render={<Link href={`/lancar?duplicar=${l.id}`} />}>
-          <Copy aria-hidden />
-          Duplicar
-        </Button>
-        <Button variant="destructive" className="h-11 justify-start" onClick={excluir} disabled={excluindo}>
+        <BotaoAbrir href={`/lancar?editar=${l.id}`} Icone={Pencil} rotulo="Editar" carregandoRotulo="Abrindo…" desativado={excluindo} onAberto={onFechar} />
+        <BotaoAbrir href={`/lancar?duplicar=${l.id}`} Icone={Copy} rotulo="Duplicar" carregandoRotulo="Abrindo…" desativado={excluindo} onAberto={onFechar} />
+        <Button variant="destructive" className="h-11 justify-start" onClick={() => setConfirmandoExclusao(true)}>
           <Trash2 aria-hidden />
-          {excluindo ? "Excluindo…" : "Excluir"}
+          Excluir
         </Button>
         {erro && (
           <p role="alert" className="text-sm text-destructive">
@@ -406,27 +426,71 @@ function Acoes({
   );
 }
 
+/**
+ * Botão que abre outra tela (Editar, Duplicar). Mostra "Abrindo…" até a tela
+ * carregar e só então fecha o diálogo.
+ */
+function BotaoAbrir({
+  href,
+  Icone,
+  rotulo,
+  carregandoRotulo,
+  desativado,
+  onAberto,
+}: {
+  href: string;
+  Icone: LucideIcon;
+  rotulo: string;
+  carregandoRotulo: string;
+  desativado?: boolean;
+  onAberto: () => void;
+}) {
+  const router = useRouter();
+  const [abrindo, iniciar] = useTransition();
+  return (
+    <Button
+      variant="outline"
+      className="h-11 justify-start"
+      carregando={abrindo}
+      disabled={desativado}
+      onClick={() =>
+        iniciar(() => {
+          router.push(href);
+          onAberto();
+        })
+      }
+    >
+      <Icone aria-hidden />
+      {abrindo ? carregandoRotulo : rotulo}
+    </Button>
+  );
+}
+
 function ConfirmarValor({ lancamento: l, onFechar }: { lancamento: Lancamento; onFechar: () => void }) {
   const router = useRouter();
   const [outro, setOutro] = useState("");
   const [erro, setErro] = useState<string>();
-  const [salvando, setSalvando] = useState(false);
+  const [salvando, iniciar] = useTransition();
+  const [qual, setQual] = useState<"previsto" | "outro">("previsto");
   const estimativa = l.estimativa ?? 0;
 
-  async function confirmar(valor: number) {
+  function confirmar(valor: number, origem: "previsto" | "outro") {
     setErro(undefined);
-    setSalvando(true);
-    const { error } = await createClient()
-      .from("lancamentos")
-      .update({ valor_real: valor })
-      .eq("id", l.id);
-    setSalvando(false);
-    if (error) {
-      setErro(traduzirErroBanco(error));
-      return;
-    }
-    onFechar();
-    router.refresh();
+    setQual(origem);
+    iniciar(async () => {
+      const { error } = await createClient()
+        .from("lancamentos")
+        .update({ valor_real: valor })
+        .eq("id", l.id);
+      if (error) {
+        setErro(traduzirErroBanco(error));
+        return;
+      }
+      iniciar(() => {
+        router.refresh();
+        onFechar();
+      });
+    });
   }
 
   function confirmarOutro(e: React.FormEvent) {
@@ -436,7 +500,7 @@ function ConfirmarValor({ lancamento: l, onFechar }: { lancamento: Lancamento; o
       setErro("Digite um valor válido. Ex.: 120,50");
       return;
     }
-    void confirmar(valor);
+    confirmar(valor, "outro");
   }
 
   return (
@@ -445,8 +509,13 @@ function ConfirmarValor({ lancamento: l, onFechar }: { lancamento: Lancamento; o
         <DialogTitle>Confirmar valor</DialogTitle>
         <DialogDescription>{l.descricao}: quanto foi de verdade?</DialogDescription>
       </DialogHeader>
-      <Button className="h-12 text-base" onClick={() => confirmar(estimativa)} disabled={salvando}>
-        Foi {formatarBRL(estimativa)}, como previsto
+      <Button
+        className="h-12 text-base"
+        onClick={() => confirmar(estimativa, "previsto")}
+        carregando={salvando && qual === "previsto"}
+        disabled={salvando}
+      >
+        {salvando && qual === "previsto" ? "Confirmando…" : `Foi ${formatarBRL(estimativa)}, como previsto`}
       </Button>
       <form onSubmit={confirmarOutro} className="flex flex-col gap-2">
         <Label htmlFor="outro-valor">Ou digite o valor real</Label>
@@ -460,8 +529,14 @@ function ConfirmarValor({ lancamento: l, onFechar }: { lancamento: Lancamento; o
             value={outro}
             onChange={(e) => setOutro(e.target.value)}
           />
-          <Button type="submit" variant="outline" className="h-11" disabled={salvando || !outro.trim()}>
-            Salvar
+          <Button
+            type="submit"
+            variant="outline"
+            className="h-11"
+            carregando={salvando && qual === "outro"}
+            disabled={salvando || !outro.trim()}
+          >
+            {salvando && qual === "outro" ? "Salvando…" : "Salvar"}
           </Button>
         </div>
       </form>

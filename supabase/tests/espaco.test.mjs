@@ -243,6 +243,45 @@ describe("espaço ativo", () => {
     assert.equal(await espacoAtivo(), casaA);
   });
 
+  test("a lista de espaços mostra só aqueles de que a pessoa é membro", async () => {
+    await comoUsuario(db, BIA);
+    const { rows } = await db.query(
+      `select e.nome from public.membros m join public.espacos e on e.id = m.espaco_id
+        where m.user_id = auth.uid() order by m.criado_em`,
+    );
+    assert.deepEqual(rows.map((r) => r.nome), ["Nossa casa", "Casa da praia"]);
+  });
+
+  test("trocar pelo app (upsert) funciona e respeita a segurança", async () => {
+    await comoUsuario(db, BIA);
+    const praia = (await um("select id from public.espacos where nome = 'Casa da praia'")).id;
+    const upsert = (id) =>
+      db.query(
+        `insert into public.preferencias_usuario (user_id, espaco_ativo_id, atualizado_em)
+         values (auth.uid(), $1, now())
+         on conflict (user_id) do update
+           set espaco_ativo_id = excluded.espaco_ativo_id, atualizado_em = excluded.atualizado_em`,
+        [id],
+      );
+    await upsert(praia);
+    assert.equal(await espacoAtivo(), praia);
+    await upsert(casaA);
+    assert.equal(await espacoAtivo(), casaA);
+    await assert.rejects(upsert(casaC), /row-level security/);
+    assert.equal(await espacoAtivo(), casaA);
+  });
+
+  test("cada espaço da mesma pessoa tem os próprios cadastros", async () => {
+    await comoUsuario(db, BIA);
+    const praia = (await um("select id from public.espacos where nome = 'Casa da praia'")).id;
+    await db.query(
+      "insert into public.categorias (espaco_id, nome, tipo) values ($1, 'Só da praia', 'gasto')",
+      [praia],
+    );
+    assert.ok((await categorias(praia)).some(([nome]) => nome === "Só da praia"));
+    assert.ok(!(await categorias(casaA)).some(([nome]) => nome === "Só da praia"));
+  });
+
   test("funções internas não são chamáveis pela API", async () => {
     await comoUsuario(db, CAIO);
     await assert.rejects(
