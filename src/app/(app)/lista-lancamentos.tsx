@@ -3,7 +3,16 @@
 import { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Clock, Copy, Pencil, SlidersHorizontal, Trash2, X, type LucideIcon } from "lucide-react";
+import {
+  CircleAlert,
+  Clock,
+  Copy,
+  Pencil,
+  SlidersHorizontal,
+  Trash2,
+  X,
+  type LucideIcon,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -27,7 +36,9 @@ import {
 } from "@/lib/dominio/dinheiro";
 import {
   ROTULO_STATUS,
+  aguardaConfirmacao,
   avaliarDiferenca,
+  resumirPendentes,
   calcularStatus,
   diferenca,
   type Status,
@@ -42,9 +53,18 @@ type Filtros = {
   forma: string;
   status: "" | Status;
   pessoa: string;
+  /** Só os previstos com data até hoje ainda sem valor real. */
+  pendentes: boolean;
 };
 
-const SEM_FILTRO: Filtros = { tipo: "", categoria: "", forma: "", status: "", pessoa: "" };
+const SEM_FILTRO: Filtros = {
+  tipo: "",
+  categoria: "",
+  forma: "",
+  status: "",
+  pessoa: "",
+  pendentes: false,
+};
 
 type Props = {
   lancamentos: Lancamento[];
@@ -52,6 +72,8 @@ type Props = {
   formas: FormaOpcao[];
   membros: Membro[];
   userId: string;
+  /** Data de hoje (aaaa-mm-dd), para saber o que já devia ter sido confirmado. */
+  hoje: string;
   /** Filtros que já chegam aplicados (ex.: vindo de um gráfico em Análises). */
   filtrosIniciais?: Partial<Filtros>;
 };
@@ -62,6 +84,7 @@ export function ListaLancamentos({
   formas,
   membros,
   userId,
+  hoje,
   filtrosIniciais,
 }: Props) {
   const [filtros, setFiltros] = useState<Filtros>({ ...SEM_FILTRO, ...filtrosIniciais });
@@ -84,8 +107,10 @@ export function ListaLancamentos({
       (!filtros.categoria || l.categoria_id === filtros.categoria) &&
       (!filtros.forma || l.forma_pagamento_id === filtros.forma) &&
       (!filtros.status || calcularStatus(l) === filtros.status) &&
-      (!filtros.pessoa || l.criado_por === filtros.pessoa),
+      (!filtros.pessoa || l.criado_por === filtros.pessoa) &&
+      (!filtros.pendentes || aguardaConfirmacao(l, hoje)),
   );
+  const pendentes = useMemo(() => resumirPendentes(lancamentos, hoje), [lancamentos, hoje]);
 
   const grupos = useMemo(() => {
     const porDia = new Map<string, Lancamento[]>();
@@ -99,6 +124,13 @@ export function ListaLancamentos({
 
   return (
     <div className="flex flex-col gap-4">
+      {pendentes.quantidade > 0 && (
+        <AvisoPendentes
+          pendentes={pendentes}
+          filtrando={filtros.pendentes}
+          onAlternar={() => setFiltros({ ...filtros, pendentes: !filtros.pendentes })}
+        />
+      )}
       <div className="flex items-center justify-between gap-2">
         <h2 className="text-sm font-medium text-muted-foreground">
           {filtrados.length === lancamentos.length
@@ -187,6 +219,7 @@ export function ListaLancamentos({
                   categoria={categoriaPorId.get(l.categoria_id)}
                   forma={formaPorId.get(l.forma_pagamento_id)}
                   pessoa={l.criado_por ? nomePorUsuario.get(l.criado_por) : undefined}
+                  pendente={aguardaConfirmacao(l, hoje)}
                   onAbrir={() => setSelecionado(l)}
                   onConfirmar={() => setConfirmando(l)}
                 />
@@ -214,6 +247,57 @@ export function ListaLancamentos({
           <ConfirmarValor key={confirmando.id} lancamento={confirmando} onFechar={() => setConfirmando(null)} />
         )}
       </Dialog>
+    </div>
+  );
+}
+
+/** Aviso no topo da lista: previstos cuja data já chegou e ainda sem valor real. */
+function AvisoPendentes({
+  pendentes: p,
+  filtrando,
+  onAlternar,
+}: {
+  pendentes: ReturnType<typeof resumirPendentes>;
+  filtrando: boolean;
+  onAlternar: () => void;
+}) {
+  const um = p.quantidade === 1;
+  const diaMes = p.maisAntigo ? formatarData(p.maisAntigo).slice(0, 5) : "";
+  const valores = [
+    p.gastos > 0 && `${formatarBRL(p.gastos)} em gastos`,
+    p.ganhos > 0 && `${formatarBRL(p.ganhos)} em ganhos`,
+  ].filter(Boolean);
+
+  return (
+    <div
+      role="status"
+      className="flex flex-col gap-3 rounded-xl border border-amber-300 bg-amber-50 p-3 text-amber-950 sm:flex-row sm:items-center dark:border-amber-700/60 dark:bg-amber-950/40 dark:text-amber-100"
+    >
+      <div className="flex min-w-0 flex-1 gap-2.5">
+        <CircleAlert className="mt-0.5 size-5 shrink-0 text-amber-600 dark:text-amber-400" aria-hidden />
+        <div className="flex min-w-0 flex-col gap-0.5">
+          <p className="text-sm font-semibold">
+            {um
+              ? "Existe 1 lançamento não confirmado"
+              : `Existem ${p.quantidade} lançamentos não confirmados`}
+          </p>
+          <p className="text-sm text-amber-900/80 dark:text-amber-100/80">
+            {um ? "Já passou da data" : `Já passaram da data (desde ${diaMes})`} e
+            {um ? " está" : " estão"} sem valor real
+            {valores.length > 0 && `: ${valores.join(" e ")}`}. Confirme quanto foi de
+            verdade para o saldo do ciclo ficar certo.
+          </p>
+        </div>
+      </div>
+      <Button
+        variant="outline"
+        size="sm"
+        className="h-9 shrink-0 self-end border-amber-400 bg-transparent text-amber-900 hover:bg-amber-100 sm:self-auto dark:border-amber-600 dark:text-amber-100 dark:hover:bg-amber-900/40"
+        onClick={onAlternar}
+        aria-pressed={filtrando}
+      >
+        {filtrando ? "Mostrar todos" : um ? "Mostrar só ele" : "Mostrar só esses"}
+      </Button>
     </div>
   );
 }
@@ -257,6 +341,7 @@ function Item({
   categoria,
   forma,
   pessoa,
+  pendente,
   onAbrir,
   onConfirmar,
 }: {
@@ -264,6 +349,8 @@ function Item({
   categoria?: CategoriaOpcao;
   forma?: FormaOpcao;
   pessoa?: string;
+  /** Previsto com data até hoje e sem valor real: fica em destaque. */
+  pendente: boolean;
   onAbrir: () => void;
   onConfirmar: () => void;
 }) {
@@ -274,17 +361,22 @@ function Item({
   const previsto = status === "previsto";
 
   return (
-    <li className="flex items-center gap-2 pr-2">
+    <li
+      className={cn(
+        "flex items-center gap-2 pr-2",
+        pendente && "border-l-4 border-l-amber-500 bg-amber-50 dark:bg-amber-950/30",
+      )}
+    >
       <button
         type="button"
         onClick={onAbrir}
         className="flex min-w-0 flex-1 items-center gap-3 py-2.5 pl-3 text-left outline-none hover:bg-muted/40 focus-visible:bg-muted"
-        aria-label={`${l.descricao}, ${ROTULO_STATUS[status]}, ${formatarBRL(valor)}. Abrir ações.`}
+        aria-label={`${l.descricao}, ${pendente ? "não confirmado" : ROTULO_STATUS[status]}, ${formatarBRL(valor)}. Abrir ações.`}
       >
         <span
           className={cn(
             "flex size-9 shrink-0 items-center justify-center rounded-full text-white",
-            previsto && "opacity-50",
+            previsto && !pendente && "opacity-50",
           )}
           style={{ backgroundColor: categoria?.cor ?? "#475569" }}
         >
@@ -294,7 +386,7 @@ function Item({
           <span
             className={cn(
               "flex items-center gap-1.5 truncate text-sm font-medium",
-              previsto && "text-muted-foreground italic",
+              previsto && !pendente && "text-muted-foreground italic",
             )}
           >
             {previsto && <Clock className="size-3.5 shrink-0" aria-label="Previsto" />}
@@ -313,7 +405,7 @@ function Item({
           <span
             className={cn(
               "text-sm font-semibold tabular-nums",
-              previsto && "font-normal text-muted-foreground italic",
+              previsto && !pendente && "font-normal text-muted-foreground italic",
               !previsto && l.tipo === "ganho" && "text-emerald-600 dark:text-emerald-400",
             )}
           >
@@ -330,6 +422,11 @@ function Item({
               {formatarDiferenca(dif)} vs. previsto
             </span>
           )}
+          {pendente && (
+            <span className="rounded-full bg-amber-200/70 px-1.5 text-[11px] font-medium text-amber-900 dark:bg-amber-800/50 dark:text-amber-200">
+              não confirmado
+            </span>
+          )}
           {status === "nao_planejado" && (
             <span className="rounded-full bg-amber-100 px-1.5 text-[11px] font-medium text-amber-800 dark:bg-amber-900/40 dark:text-amber-300">
               extra
@@ -338,7 +435,12 @@ function Item({
         </span>
       </button>
       {previsto && (
-        <Button variant="outline" size="sm" className="h-8 shrink-0" onClick={onConfirmar}>
+        <Button
+          variant={pendente ? "default" : "outline"}
+          size="sm"
+          className="h-8 shrink-0"
+          onClick={onConfirmar}
+        >
           Confirmar
         </Button>
       )}

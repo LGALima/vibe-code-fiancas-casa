@@ -84,6 +84,7 @@ async function Conteudo({ searchParams }: { searchParams: PageProps<"/">["search
         formas={cadastros.formas}
         membros={membros}
         userId={espaco.userId}
+        hoje={dataHoje}
         filtrosIniciais={{ categoria: categoriaPedida ?? "", pessoa: pessoaPedida ?? "" }}
       />
       <Button

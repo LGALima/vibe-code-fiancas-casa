@@ -48,3 +48,38 @@ export function avaliarDiferenca(
 export function valorPrevisto({ estimativa, valor_real }: Valores): number {
   return valor_real ?? estimativa ?? 0;
 }
+
+type ParaConfirmar = Valores & { tipo: TipoLancamento; data: string };
+
+/**
+ * Previsto cuja data já chegou (hoje ou antes) e ainda não tem valor real:
+ * provavelmente já foi pago ou recebido e falta confirmar o valor.
+ * Datas em ISO (aaaa-mm-dd) comparam certo como texto.
+ */
+export function aguardaConfirmacao(l: ParaConfirmar, hoje: string): boolean {
+  return l.estimativa !== null && l.valor_real === null && l.data <= hoje;
+}
+
+export type ResumoPendentes = {
+  quantidade: number;
+  /** Soma das estimativas dos gastos pendentes. */
+  gastos: number;
+  /** Soma das estimativas dos ganhos pendentes. */
+  ganhos: number;
+  /** Data do pendente mais antigo (null se não houver). */
+  maisAntigo: string | null;
+};
+
+export function resumirPendentes(lancamentos: readonly ParaConfirmar[], hoje: string): ResumoPendentes {
+  const r: ResumoPendentes = { quantidade: 0, gastos: 0, ganhos: 0, maisAntigo: null };
+  for (const l of lancamentos) {
+    if (!aguardaConfirmacao(l, hoje)) continue;
+    r.quantidade += 1;
+    if (l.tipo === "gasto") r.gastos += l.estimativa ?? 0;
+    else r.ganhos += l.estimativa ?? 0;
+    if (r.maisAntigo === null || l.data < r.maisAntigo) r.maisAntigo = l.data;
+  }
+  r.gastos = Math.round(r.gastos * 100) / 100;
+  r.ganhos = Math.round(r.ganhos * 100) / 100;
+  return r;
+}
