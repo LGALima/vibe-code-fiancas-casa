@@ -57,7 +57,9 @@ export function Graficos({ analise, evolucao, visao, pessoa, formas }: Props) {
   const ganhosCat = analise.por_categoria.filter((c) => c.tipo === "ganho");
 
   return (
-    <div className="flex flex-col gap-4">
+    // Celular: uma coluna. Computador: categorias e formas lado a lado; o que
+    // tem eixo de tempo (por dia, evolução) usa a largura toda.
+    <div className="grid items-start gap-4 lg:grid-cols-2">
       <GastosPorCategoria
         dados={gastosCat}
         totalPrevisto={t.gastos_previsto}
@@ -74,8 +76,12 @@ export function Graficos({ analise, evolucao, visao, pessoa, formas }: Props) {
         cicloId={analise.ciclo.id}
         pessoa={pessoa}
       />
-      <GastosPorDia analise={analise} visao={v} rotuloVisao={rotuloVisao} />
-      <GanhosPorDia analise={analise} visao={v} rotuloVisao={rotuloVisao} />
+      <div className="lg:col-span-2">
+        <GastosPorDia analise={analise} visao={v} rotuloVisao={rotuloVisao} />
+      </div>
+      <div className="lg:col-span-2">
+        <GanhosPorDia analise={analise} visao={v} rotuloVisao={rotuloVisao} />
+      </div>
       <PorForma
         titulo="Gastos por forma de pagamento"
         dados={analise.por_forma.filter((f) => f.tipo === "gasto")}
@@ -94,7 +100,9 @@ export function Graficos({ analise, evolucao, visao, pessoa, formas }: Props) {
         formas={formas}
         vazio="Sem ganhos neste ciclo."
       />
-      <Evolucao pontos={evolucao} visao={v} rotuloVisao={rotuloVisao} />
+      <div className="lg:col-span-2">
+        <Evolucao pontos={evolucao} visao={v} rotuloVisao={rotuloVisao} />
+      </div>
     </div>
   );
 }

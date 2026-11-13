@@ -80,7 +80,7 @@ async function Conteudo() {
   }));
 
   return (
-    <>
+    <div className="grid items-start gap-4 md:grid-cols-2">
       <Card>
         <CardHeader>
           <CardTitle>{espaco.nome}</CardTitle>
@@ -128,6 +128,6 @@ async function Conteudo() {
         diaInicioCiclo={configuracoes.data?.dia_inicio_ciclo ?? 3}
         moeda={configuracoes.data?.moeda ?? "BRL"}
       />
-    </>
+    </div>
   );
 }

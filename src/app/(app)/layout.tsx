@@ -1,27 +1,51 @@
 import { Suspense, type ReactNode } from "react";
 import { redirect } from "next/navigation";
-import { LogOut } from "lucide-react";
-import { BarraInferior } from "@/components/barra-inferior";
+import { LogOut, Wallet } from "lucide-react";
+import { BotaoTema } from "@/components/botao-tema";
+import { BarraInferior, LinksLaterais } from "@/components/navegacao";
 import { Button } from "@/components/ui/button";
 import { obterEspacoAtivo } from "@/lib/espaco";
 import { sair } from "./actions";
 
+/**
+ * Celular (< 768px): cabeçalho em cima, conteúdo em uma coluna e barra embaixo.
+ * Computador (>= 768px): barra lateral fixa à esquerda e conteúdo mais largo.
+ */
 export default function AppLayout({ children }: LayoutProps<"/">) {
   return (
-    <div className="flex min-h-dvh flex-col">
-      <header className="sticky top-0 z-30 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
-        <div className="mx-auto flex h-14 max-w-md items-center justify-between px-4">
-          <span className="font-semibold tracking-tight">Finanças da Casa</span>
+    <div className="flex min-h-dvh flex-col md:flex-row">
+      {/* Computador */}
+      <aside className="sticky top-0 hidden h-dvh w-60 shrink-0 flex-col gap-6 border-r bg-background px-4 py-6 md:flex">
+        <Marca />
+        <LinksLaterais />
+        <div className="mt-auto flex flex-col gap-1">
+          <BotaoTema comRotulo className="h-9 w-full px-3" />
           <form action={sair}>
-            <Button type="submit" variant="ghost" size="sm">
+            <Button type="submit" variant="ghost" size="sm" className="h-9 w-full justify-start px-3">
               <LogOut aria-hidden />
               Sair
             </Button>
           </form>
         </div>
+      </aside>
+
+      {/* Celular */}
+      <header className="sticky top-0 z-30 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 md:hidden">
+        <div className="mx-auto flex h-14 max-w-md items-center justify-between px-4">
+          <Marca />
+          <div className="flex items-center gap-1">
+            <BotaoTema />
+            <form action={sair}>
+              <Button type="submit" variant="ghost" size="sm">
+                <LogOut aria-hidden />
+                Sair
+              </Button>
+            </form>
+          </div>
+        </div>
       </header>
 
-      <main className="mx-auto w-full max-w-md flex-1 px-4 pt-4 pb-[calc(5rem+env(safe-area-inset-bottom))]">
+      <main className="mx-auto w-full max-w-md min-w-0 flex-1 px-4 pt-4 pb-[calc(5rem+env(safe-area-inset-bottom))] md:max-w-6xl md:px-8 md:pt-8 md:pb-10">
         <Suspense fallback={<Carregando />}>
           <ExigirEspaco>{children}</ExigirEspaco>
         </Suspense>
@@ -29,6 +53,17 @@ export default function AppLayout({ children }: LayoutProps<"/">) {
 
       <BarraInferior />
     </div>
+  );
+}
+
+function Marca() {
+  return (
+    <span className="flex items-center gap-2 font-semibold tracking-tight">
+      <span className="flex size-7 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+        <Wallet className="size-4" aria-hidden />
+      </span>
+      Finanças da Casa
+    </span>
   );
 }
 

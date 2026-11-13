@@ -17,7 +17,7 @@ export const metadata: Metadata = { title: "Ciclos · Finanças da Casa" };
 
 export default function CiclosPage() {
   return (
-    <section className="flex flex-col gap-4">
+    <section className="mx-auto flex w-full max-w-3xl flex-col gap-4">
       <Suspense fallback={<div className="h-64 animate-pulse rounded-xl bg-muted" />}>
         <Conteudo />
       </Suspense>

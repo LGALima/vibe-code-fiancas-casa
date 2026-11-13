@@ -10,7 +10,7 @@ export const metadata: Metadata = { title: "Lançar · Finanças da Casa" };
 
 export default function LancarPage({ searchParams }: PageProps<"/lancar">) {
   return (
-    <section className="flex flex-col gap-4">
+    <section className="mx-auto flex w-full max-w-2xl flex-col gap-4">
       <Suspense fallback={<div className="h-96 animate-pulse rounded-xl bg-muted" />}>
         <Conteudo searchParams={searchParams} />
       </Suspense>
