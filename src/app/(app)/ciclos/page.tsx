@@ -1,15 +1,73 @@
 import type { Metadata } from "next";
-import { RefreshCw } from "lucide-react";
-import { PaginaVazia } from "@/components/pagina-vazia";
+import Link from "next/link";
+import { Suspense } from "react";
+import { ChevronRight } from "lucide-react";
+import { carregarCadastros, carregarCiclos } from "@/lib/dados";
+import { cicloDaData, sugerirNovoCiclo } from "@/lib/dominio/ciclos";
+import { formatarData, hoje } from "@/lib/dominio/datas";
+import { obterEspacoAtivo } from "@/lib/espaco";
+import { NovoCiclo } from "./novo-ciclo";
 
 export const metadata: Metadata = { title: "Ciclos · Finanças da Casa" };
 
 export default function CiclosPage() {
   return (
-    <PaginaVazia
-      titulo="Ciclos"
-      descricao="Aqui vai ficar a lista de ciclos e o botão para criar o próximo."
-      Icone={RefreshCw}
-    />
+    <section className="flex flex-col gap-4">
+      <Suspense fallback={<div className="h-64 animate-pulse rounded-xl bg-muted" />}>
+        <Conteudo />
+      </Suspense>
+    </section>
+  );
+}
+
+async function Conteudo() {
+  const espaco = await obterEspacoAtivo();
+  if (!espaco) return null;
+  const [ciclos, { diaInicioCiclo }] = await Promise.all([
+    carregarCiclos(espaco.id),
+    carregarCadastros(espaco.id),
+  ]);
+  const dataHoje = hoje();
+  const atual = cicloDaData(ciclos, dataHoje);
+  const sugestao = sugerirNovoCiclo(ciclos, dataHoje, diaInicioCiclo);
+
+  return (
+    <>
+      <div className="flex items-center justify-between gap-3">
+        <h1 className="text-xl font-semibold tracking-tight">Ciclos</h1>
+        <NovoCiclo espacoId={espaco.id} sugestao={sugestao} existentes={ciclos} />
+      </div>
+
+      {ciclos.length === 0 ? (
+        <div className="rounded-xl border border-dashed px-6 py-10 text-center text-sm text-muted-foreground">
+          Nenhum ciclo ainda. Crie o primeiro: ele vai do dia {diaInicioCiclo} até a
+          véspera do mesmo dia no mês seguinte.
+        </div>
+      ) : (
+        <ul className="flex flex-col divide-y rounded-xl border">
+          {ciclos.map((c) => (
+            <li key={c.id}>
+              <Link
+                href={`/?ciclo=${c.id}`}
+                className="flex items-center gap-3 px-4 py-3 outline-none hover:bg-muted/50 focus-visible:bg-muted"
+              >
+                <span className="flex flex-1 flex-col">
+                  <span className="font-medium">{c.nome}</span>
+                  <span className="text-sm text-muted-foreground">
+                    {formatarData(c.data_inicio)} a {formatarData(c.data_fim)}
+                  </span>
+                </span>
+                {atual?.id === c.id && (
+                  <span className="rounded-full bg-primary px-2 py-0.5 text-xs text-primary-foreground">
+                    atual
+                  </span>
+                )}
+                <ChevronRight className="size-4 text-muted-foreground" aria-hidden />
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
+    </>
   );
 }

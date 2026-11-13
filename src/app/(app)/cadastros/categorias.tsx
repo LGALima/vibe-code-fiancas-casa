@@ -7,6 +7,7 @@ import { Controller, useForm } from "react-hook-form";
 import { Check, ChevronRight, Plus } from "lucide-react";
 import { Campo } from "@/components/campo";
 import { Escolha } from "@/components/escolha";
+import { IconeCategoria } from "@/components/icone-categoria";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -28,7 +29,7 @@ import {
   NOMES_ICONES,
   PALETA,
   TIPOS_CATEGORIA,
-  iconeDaCategoria,
+
   type NomeIcone,
 } from "@/lib/cadastros";
 import { createClient } from "@/lib/supabase/client";
@@ -124,7 +125,6 @@ function Lista({
   return (
     <ul className="flex flex-col divide-y rounded-lg border">
       {categorias.map((c) => {
-        const Icone = iconeDaCategoria(c.icone);
         return (
           <li key={c.id}>
             <button
@@ -136,7 +136,7 @@ function Lista({
                 className="flex size-8 shrink-0 items-center justify-center rounded-full text-white"
                 style={{ backgroundColor: c.cor ?? "var(--muted-foreground)" }}
               >
-                <Icone className="size-4" aria-hidden />
+                <IconeCategoria nome={c.icone} className="size-4" />
               </span>
               <span className={c.ativa ? "flex-1" : "flex-1 text-muted-foreground line-through"}>
                 {c.nome}

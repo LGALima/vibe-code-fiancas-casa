@@ -7,9 +7,10 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "node --test \"supabase/tests/*.test.mjs\"",
+    "test": "npm run test:unit && npm run test:db",
     "test:db": "node --test \"supabase/tests/*.test.mjs\"",
-    "db:types": "node supabase/gerar-tipos.mjs"
+    "db:types": "node supabase/gerar-tipos.mjs",
+    "test:unit": "vitest run"
   },
   "dependencies": {
     "@base-ui/react": "^1.9.0",
@@ -31,12 +32,13 @@
   "devDependencies": {
     "@electric-sql/pglite": "^0.5.16",
     "@tailwindcss/turbopack": "4.3.3",
-    "@types/node": "^20",
+    "@types/node": "^24.19.2",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.4.6",
     "tailwindcss": "4.3.3",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^5.1.0"
   }
 }
