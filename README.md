@@ -30,6 +30,22 @@ Requisitos: Node.js 20 ou mais novo e um projeto no [Supabase](https://supabase.
    npm run dev
    ```
 
+## Banco de dados
+
+O banco fica todo em `supabase/migrations/`. Nunca altere o banco direto pelo painel: crie um arquivo novo de migração.
+
+**Aplicar no Supabase.** Escolha um dos dois caminhos:
+- **Pelo painel:** abra o *SQL Editor* e rode os arquivos de `supabase/migrations/` em ordem, um de cada vez.
+- **Pelo CLI:** rode `npx supabase login`, depois `npx supabase link --project-ref <id-do-projeto>` e, por fim, `npx supabase db push`.
+
+**Testar sem Supabase.** `npm test` sobe um Postgres em memória ([PGlite](https://pglite.dev)), aplica todas as migrações do zero e roda os testes de isolamento de `supabase/tests/`. Os testes provam que quem não é membro de um espaço não lê nem altera nada dele. Não precisa de Docker.
+
+**Tipos.** Depois de mudar uma migração, rode `npm run db:types` para regenerar `src/types/database.ts`.
+
+**Criar e compartilhar o espaço.** Ninguém insere direto em `espacos` ou `membros`; tudo passa por duas funções:
+- `criar_espaco(nome)`: cria a casa, torna você membro e cria as configurações.
+- `entrar_no_espaco(codigo)`: o outro membro entra usando o `codigo_convite` da casa.
+
 ## Scripts
 
 | Comando         | O que faz                      |
@@ -38,6 +54,8 @@ Requisitos: Node.js 20 ou mais novo e um projeto no [Supabase](https://supabase.
 | `npm run build` | Build de produção              |
 | `npm run start` | Roda o build de produção       |
 | `npm run lint`  | ESLint                         |
+| `npm test`      | Migrações do zero + testes de isolamento do banco |
+| `npm run db:types` | Regera `src/types/database.ts` |
 
 ## Estrutura
 
