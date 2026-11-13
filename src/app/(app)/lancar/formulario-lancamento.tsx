@@ -9,6 +9,13 @@ import { CreditCard } from "lucide-react";
 import { Campo } from "@/components/campo";
 import { Escolha } from "@/components/escolha";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { IconeCategoria } from "@/components/icone-categoria";
@@ -127,7 +134,30 @@ export function FormularioLancamento({ espacoId, hoje, ciclos, categorias, forma
     }
   }
 
+  // Editar uma parcela: perguntar se vale só para ela ou também para as próximas.
+  const [perguntaParcelas, setPerguntaParcelas] = useState<{
+    dados: LancamentoDados;
+    proximas: number;
+  } | null>(null);
+
   async function salvar(d: LancamentoDados) {
+    setErro(undefined);
+    setSemCiclo(false);
+    if (editando?.grupo_id && editando.parcela_atual && d.parcelado) {
+      const { count } = await createClient()
+        .from("lancamentos")
+        .select("id", { count: "exact", head: true })
+        .eq("grupo_id", editando.grupo_id)
+        .gt("parcela_atual", editando.parcela_atual);
+      if (count && count > 0) {
+        setPerguntaParcelas({ dados: d, proximas: count });
+        return;
+      }
+    }
+    await gravar(d, "esta");
+  }
+
+  async function gravar(d: LancamentoDados, escopo: "esta" | "proximas") {
     setErro(undefined);
     setSemCiclo(false);
     const categoria = categorias.find((c) => c.id === d.categoriaId);
@@ -162,6 +192,28 @@ export function FormularioLancamento({ espacoId, hoje, ciclos, categorias, forma
       }
       return;
     }
+
+    // "Esta e as próximas": leva o que faz sentido para as parcelas seguintes do
+    // mesmo grupo. Data, número da parcela e valor real continuam de cada uma.
+    if (escopo === "proximas" && editando?.grupo_id && editando.parcela_atual) {
+      const { error: erroGrupo } = await supabase
+        .from("lancamentos")
+        .update({
+          tipo: registro.tipo,
+          descricao: registro.descricao,
+          estimativa: d.estimativa ?? d.valorReal,
+          categoria_id: registro.categoria_id,
+          forma_pagamento_id: registro.forma_pagamento_id,
+          observacao: registro.observacao,
+        })
+        .eq("grupo_id", editando.grupo_id)
+        .gt("parcela_atual", editando.parcela_atual);
+      if (erroGrupo) {
+        setErro(`Esta parcela foi salva, mas as próximas não: ${traduzirErroBanco(erroGrupo)}`);
+        return;
+      }
+    }
+
     salvarUltimaForma(d.formaId);
     router.push(`/?ciclo=${d.cicloId}`);
     router.refresh();
@@ -432,6 +484,49 @@ export function FormularioLancamento({ espacoId, hoje, ciclos, categorias, forma
           {isSubmitting ? "Salvando…" : editando ? "Salvar alterações" : "Salvar"}
         </Button>
       </div>
+
+      <Dialog
+        open={perguntaParcelas !== null}
+        onOpenChange={(aberto) => !aberto && setPerguntaParcelas(null)}
+      >
+        {perguntaParcelas && (
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Aplicar a quais parcelas?</DialogTitle>
+              <DialogDescription>
+                Esta é a parcela {editando?.parcela_atual}/{editando?.total_parcelas}. Nas
+                próximas, mudam descrição, categoria, forma de pagamento, estimativa e
+                observação; a data e o valor real de cada uma ficam como estão.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="flex flex-col gap-2">
+              <Button
+                type="button"
+                className="h-11"
+                onClick={() => {
+                  const d = perguntaParcelas.dados;
+                  setPerguntaParcelas(null);
+                  void gravar(d, "proximas");
+                }}
+              >
+                Esta e as próximas ({perguntaParcelas.proximas})
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                className="h-11"
+                onClick={() => {
+                  const d = perguntaParcelas.dados;
+                  setPerguntaParcelas(null);
+                  void gravar(d, "esta");
+                }}
+              >
+                Só esta
+              </Button>
+            </div>
+          </DialogContent>
+        )}
+      </Dialog>
     </form>
   );
 }
