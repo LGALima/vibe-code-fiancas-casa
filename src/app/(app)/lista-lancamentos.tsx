@@ -373,11 +373,11 @@ function Acoes({
             Confirmar valor
           </Button>
         )}
-        <Button variant="outline" className="h-11 justify-start" nativeButton={false} render={<Link href={`/lancar?editar=${l.id}`} />}>
+        <Button variant="outline" className="h-11 justify-start" nativeButton={false} onClick={onFechar} render={<Link href={`/lancar?editar=${l.id}`} />}>
           <Pencil aria-hidden />
           Editar
         </Button>
-        <Button variant="outline" className="h-11 justify-start" nativeButton={false} render={<Link href={`/lancar?duplicar=${l.id}`} />}>
+        <Button variant="outline" className="h-11 justify-start" nativeButton={false} onClick={onFechar} render={<Link href={`/lancar?duplicar=${l.id}`} />}>
           <Copy aria-hidden />
           Duplicar
         </Button>

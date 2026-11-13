@@ -118,6 +118,15 @@ export function FormularioLancamento({ espacoId, hoje, ciclos, categorias, forma
     }
   }, [tipo, categorias, getValues, setValue]);
 
+  // Descrição automática: se ela é só o nome da categoria anterior, some ao
+  // trocar de categoria (e o nome da nova entra no lugar ao salvar).
+  function limparDescricaoAutomatica() {
+    const anterior = categorias.find((c) => c.id === getValues("categoriaId"))?.nome;
+    if (anterior && getValues("descricao").trim() === anterior) {
+      setValue("descricao", "");
+    }
+  }
+
   async function salvar(d: LancamentoDados) {
     setErro(undefined);
     setSemCiclo(false);
@@ -240,7 +249,11 @@ export function FormularioLancamento({ espacoId, hoje, ciclos, categorias, forma
                     type="button"
                     role="radio"
                     aria-checked={ativo}
-                    onClick={() => field.onChange(c.id)}
+                    aria-label={c.nome}
+                    onClick={() => {
+                      if (c.id !== field.value) limparDescricaoAutomatica();
+                      field.onChange(c.id);
+                    }}
                     className={cn(
                       "flex min-h-16 flex-col items-center justify-center gap-1 rounded-xl border-2 px-1 py-2 text-xs font-medium transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
                       ativo ? "text-white" : "bg-background hover:bg-muted",
@@ -338,6 +351,7 @@ export function FormularioLancamento({ espacoId, hoje, ciclos, categorias, forma
                 </Label>
                 <Switch
                   id="parcelado"
+                  aria-label="Parcelado"
                   checked={field.value}
                   onCheckedChange={(v) => field.onChange(Boolean(v))}
                 />
@@ -378,6 +392,7 @@ export function FormularioLancamento({ espacoId, hoje, ciclos, categorias, forma
                 </Label>
                 <Switch
                   id="recorrente"
+                  aria-label="Recorrente"
                   checked={parcelado || field.value}
                   disabled={parcelado}
                   onCheckedChange={(v) => field.onChange(Boolean(v))}
