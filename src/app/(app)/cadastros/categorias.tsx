@@ -6,6 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Controller, useForm } from "react-hook-form";
 import { Check, ChevronRight, Plus } from "lucide-react";
 import { Campo } from "@/components/campo";
+import { PainelConfirmarExclusao } from "@/components/confirmar-exclusao";
 import { Escolha } from "@/components/escolha";
 import { IconeCategoria } from "@/components/icone-categoria";
 import { Button } from "@/components/ui/button";
@@ -225,19 +226,35 @@ function FormularioCategoria({
     );
   }
 
+  // Primeiro troca o formulário pela pergunta; só exclui depois do "Excluir".
+  const [confirmandoExclusao, setConfirmandoExclusao] = useState(false);
+
   function excluir() {
     if (!categoria) return;
-    if (!window.confirm(`Excluir a categoria "${categoria.nome}"? Isso não pode ser desfeito.`)) {
-      return;
-    }
-    concluir("excluir", () =>
-      createClient().from("categorias").delete().eq("id", categoria.id),
-    );
+    concluir("excluir", () => createClient().from("categorias").delete().eq("id", categoria.id));
   }
 
   const travado = isSubmitting || ocupado;
   const emAndamento = (qual: typeof acao) => ocupado && acao === qual;
   const salvando = isSubmitting || emAndamento("salvar");
+
+  if (categoria && confirmandoExclusao) {
+    return (
+      <DialogContent>
+        <PainelConfirmarExclusao
+          titulo={`Excluir a categoria "${categoria.nome}"?`}
+          rotuloConfirmar="Excluir categoria"
+          excluindo={emAndamento("excluir")}
+          erro={erro}
+          onConfirmar={excluir}
+          onCancelar={() => {
+            setErro(undefined);
+            setConfirmandoExclusao(false);
+          }}
+        />
+      </DialogContent>
+    );
+  }
 
   return (
     <DialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto sm:max-w-lg">
@@ -348,11 +365,13 @@ function FormularioCategoria({
                 type="button"
                 variant="destructive"
                 className="h-10"
-                onClick={excluir}
-                carregando={emAndamento("excluir")}
+                onClick={() => {
+                  setErro(undefined);
+                  setConfirmandoExclusao(true);
+                }}
                 disabled={travado}
               >
-                {emAndamento("excluir") ? "Excluindo…" : "Excluir"}
+                Excluir
               </Button>
             )}
           </div>

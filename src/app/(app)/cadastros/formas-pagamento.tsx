@@ -6,6 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Controller, useForm } from "react-hook-form";
 import { ChevronRight, CreditCard, Plus } from "lucide-react";
 import { Campo } from "@/components/campo";
+import { PainelConfirmarExclusao } from "@/components/confirmar-exclusao";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -201,17 +202,35 @@ function Formulario({
     );
   }
 
+  // Primeiro troca o formulário pela pergunta; só exclui depois do "Excluir".
+  const [confirmandoExclusao, setConfirmandoExclusao] = useState(false);
+
   function excluir() {
     if (!forma) return;
-    if (!window.confirm(`Excluir a forma de pagamento "${forma.nome}"? Isso não pode ser desfeito.`)) {
-      return;
-    }
     concluir("excluir", () => createClient().from("formas_pagamento").delete().eq("id", forma.id));
   }
 
   const travado = isSubmitting || ocupado;
   const emAndamento = (qual: typeof acao) => ocupado && acao === qual;
   const salvando = isSubmitting || emAndamento("salvar");
+
+  if (forma && confirmandoExclusao) {
+    return (
+      <DialogContent>
+        <PainelConfirmarExclusao
+          titulo={`Excluir a forma de pagamento "${forma.nome}"?`}
+          rotuloConfirmar="Excluir forma de pagamento"
+          excluindo={emAndamento("excluir")}
+          erro={erro}
+          onConfirmar={excluir}
+          onCancelar={() => {
+            setErro(undefined);
+            setConfirmandoExclusao(false);
+          }}
+        />
+      </DialogContent>
+    );
+  }
 
   return (
     <DialogContent>
@@ -281,11 +300,13 @@ function Formulario({
                 type="button"
                 variant="destructive"
                 className="h-10"
-                onClick={excluir}
-                carregando={emAndamento("excluir")}
+                onClick={() => {
+                  setErro(undefined);
+                  setConfirmandoExclusao(true);
+                }}
                 disabled={travado}
               >
-                {emAndamento("excluir") ? "Excluindo…" : "Excluir"}
+                Excluir
               </Button>
             )}
           </div>

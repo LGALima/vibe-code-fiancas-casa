@@ -19,6 +19,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { IconeCategoria } from "@/components/icone-categoria";
+import { DialogoConfirmarExclusao } from "@/components/confirmar-exclusao";
 import type { CategoriaOpcao, Ciclo, FormaOpcao, Lancamento } from "@/lib/dados";
 import { valorParaCampo } from "@/lib/dominio/dinheiro";
 import { createClient } from "@/lib/supabase/client";
@@ -71,6 +72,12 @@ export function FormularioLancamento({ espacoId, hoje, ciclos, categorias, forma
   const [acao, setAcao] = useState<"salvar" | "excluir">("salvar");
   const [erro, setErro] = useState<string>();
   const [semCiclo, setSemCiclo] = useState(false);
+  // Editar uma parcela: perguntar se vale só para ela ou também para as próximas.
+  const [perguntaParcelas, setPerguntaParcelas] = useState<{
+    dados: LancamentoDados;
+    proximas: number;
+  } | null>(null);
+  const [confirmandoExclusao, setConfirmandoExclusao] = useState(false);
   const editando = origem?.modo === "editar" ? origem.lancamento : null;
   const base = origem?.lancamento;
 
@@ -131,6 +138,7 @@ export function FormularioLancamento({ espacoId, hoje, ciclos, categorias, forma
     setErro(undefined);
     setSemCiclo(false);
     setPerguntaParcelas(null);
+    setConfirmandoExclusao(false);
   });
   useEffect(() => {
     aparecer();
@@ -163,11 +171,6 @@ export function FormularioLancamento({ espacoId, hoje, ciclos, categorias, forma
     }
   }
 
-  // Editar uma parcela: perguntar se vale só para ela ou também para as próximas.
-  const [perguntaParcelas, setPerguntaParcelas] = useState<{
-    dados: LancamentoDados;
-    proximas: number;
-  } | null>(null);
 
   async function salvar(d: LancamentoDados) {
     setAcao("salvar");
@@ -253,7 +256,6 @@ export function FormularioLancamento({ espacoId, hoje, ciclos, categorias, forma
 
   function excluir() {
     if (!editando) return;
-    if (!window.confirm(`Excluir "${editando.descricao}"? Isso não pode ser desfeito.`)) return;
     setAcao("excluir");
     setErro(undefined);
     iniciar(async () => {
@@ -512,17 +514,39 @@ export function FormularioLancamento({ espacoId, hoje, ciclos, categorias, forma
             type="button"
             variant="destructive"
             className="h-12"
-            onClick={excluir}
-            carregando={excluindo}
+            onClick={() => {
+              setErro(undefined);
+              setConfirmandoExclusao(true);
+            }}
             disabled={travado}
           >
-            {excluindo ? "Excluindo…" : "Excluir"}
+            Excluir
           </Button>
         )}
         <Button type="submit" className="h-12 flex-1 text-base" carregando={salvando} disabled={travado}>
           {salvando ? "Salvando…" : editando ? "Salvar alterações" : "Salvar"}
         </Button>
       </div>
+
+      {editando && (
+        <DialogoConfirmarExclusao
+          aberto={confirmandoExclusao}
+          titulo={`Excluir "${editando.descricao}"?`}
+          descricao={
+            editando.grupo_id && editando.total_parcelas
+              ? `Só esta parcela (${editando.parcela_atual}/${editando.total_parcelas}) é excluída.`
+              : undefined
+          }
+          rotuloConfirmar="Excluir lançamento"
+          excluindo={excluindo}
+          erro={erro}
+          onConfirmar={excluir}
+          onCancelar={() => {
+            setErro(undefined);
+            setConfirmandoExclusao(false);
+          }}
+        />
+      )}
 
       <Dialog
         open={perguntaParcelas !== null}

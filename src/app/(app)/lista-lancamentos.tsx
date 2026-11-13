@@ -15,6 +15,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { IconeCategoria } from "@/components/icone-categoria";
+import { PainelConfirmarExclusao } from "@/components/confirmar-exclusao";
 import type { CategoriaOpcao, FormaOpcao, Lancamento, Membro } from "@/lib/dados";
 import { formatarData, formatarDiaDaLista } from "@/lib/dominio/datas";
 import { formatarBRL, formatarDiferenca, lerValor } from "@/lib/dominio/dinheiro";
@@ -355,8 +356,9 @@ function Acoes({
   const [excluindo, iniciar] = useTransition();
   const status = calcularStatus(l);
 
+  const [confirmandoExclusao, setConfirmandoExclusao] = useState(false);
+
   function excluir() {
-    if (!window.confirm(`Excluir "${l.descricao}"? Isso não pode ser desfeito.`)) return;
     setErro(undefined);
     iniciar(async () => {
       const { error } = await createClient().from("lancamentos").delete().eq("id", l.id);
@@ -369,6 +371,25 @@ function Acoes({
         onFechar();
       });
     });
+  }
+
+  if (confirmandoExclusao) {
+    return (
+      <DialogContent>
+        <PainelConfirmarExclusao
+          titulo={`Excluir "${l.descricao}"?`}
+          descricao={`${formatarData(l.data)}${l.valor_real !== null ? ` · ${formatarBRL(l.valor_real)}` : l.estimativa !== null ? ` · ${formatarBRL(l.estimativa)}` : ""}.`}
+          rotuloConfirmar="Excluir lançamento"
+          excluindo={excluindo}
+          erro={erro}
+          onConfirmar={excluir}
+          onCancelar={() => {
+            setErro(undefined);
+            setConfirmandoExclusao(false);
+          }}
+        />
+      </DialogContent>
+    );
   }
 
   return (
@@ -391,9 +412,9 @@ function Acoes({
         )}
         <BotaoAbrir href={`/lancar?editar=${l.id}`} Icone={Pencil} rotulo="Editar" carregandoRotulo="Abrindo…" desativado={excluindo} onAberto={onFechar} />
         <BotaoAbrir href={`/lancar?duplicar=${l.id}`} Icone={Copy} rotulo="Duplicar" carregandoRotulo="Abrindo…" desativado={excluindo} onAberto={onFechar} />
-        <Button variant="destructive" className="h-11 justify-start" onClick={excluir} carregando={excluindo}>
+        <Button variant="destructive" className="h-11 justify-start" onClick={() => setConfirmandoExclusao(true)}>
           <Trash2 aria-hidden />
-          {excluindo ? "Excluindo…" : "Excluir"}
+          Excluir
         </Button>
         {erro && (
           <p role="alert" className="text-sm text-destructive">
