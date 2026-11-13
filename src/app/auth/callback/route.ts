@@ -4,9 +4,10 @@ import { destinoSeguro } from "@/lib/destino-seguro";
 import { createClient } from "@/lib/supabase/server";
 
 /**
- * Retorno do login: link mágico e Google chegam aqui.
- * - ?code=...                 → fluxo PKCE (Google e link mágico padrão)
- * - ?token_hash=...&type=...  → link mágico com template de e-mail customizado
+ * Links enviados por e-mail chegam aqui: confirmação de cadastro e
+ * recuperação de senha.
+ * - ?code=...                 → fluxo PKCE (templates de e-mail padrão)
+ * - ?token_hash=...&type=...  → templates de e-mail customizados
  */
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = request.nextUrl;

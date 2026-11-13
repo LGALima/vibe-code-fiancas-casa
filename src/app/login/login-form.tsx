@@ -1,7 +1,11 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
-import { useSearchParams } from "next/navigation";
+import { useState } from "react";
+import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import { Campo } from "@/components/campo";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -10,19 +14,21 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { destinoSeguro } from "@/lib/destino-seguro";
 import { createClient } from "@/lib/supabase/client";
+import { traduzirErroAuth } from "@/lib/supabase/erros";
+import {
+  cadastroSchema,
+  entrarSchema,
+  type CadastroDados,
+  type EntrarDados,
+} from "@/lib/validacoes/auth";
+import { cn } from "@/lib/utils";
 
-type Estado =
-  | { tipo: "ocioso" }
-  | { tipo: "enviando" }
-  | { tipo: "enviado"; email: string }
-  | { tipo: "erro"; mensagem: string };
+type Modo = "entrar" | "cadastrar";
 
-const ERROS: Record<string, string> = {
-  "link-invalido": "O link de acesso é inválido ou expirou. Peça um novo.",
+const ERROS_DA_URL: Record<string, string> = {
+  "link-invalido": "O link é inválido ou expirou. Tente de novo.",
 };
 
 export function LoginForm() {
@@ -30,161 +36,246 @@ export function LoginForm() {
   const next = destinoSeguro(searchParams.get("next"));
   const erroDaUrl = searchParams.get("erro");
 
-  const [email, setEmail] = useState("");
-  const [estado, setEstado] = useState<Estado>(() =>
-    erroDaUrl
-      ? {
-          tipo: "erro",
-          mensagem:
-            ERROS[erroDaUrl] ?? "Não foi possível entrar. Tente de novo.",
-        }
-      : { tipo: "ocioso" },
-  );
-  const [entrandoComGoogle, setEntrandoComGoogle] = useState(false);
+  const [modo, setModo] = useState<Modo>("entrar");
+  const [emailConfirmacao, setEmailConfirmacao] = useState<string | null>(null);
 
-  function urlDeRetorno() {
-    const url = new URL("/auth/callback", window.location.origin);
-    if (next !== "/") url.searchParams.set("next", next);
-    return url.toString();
-  }
-
-  async function enviarLinkMagico(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setEstado({ tipo: "enviando" });
-
-    const { error } = await createClient().auth.signInWithOtp({
-      email,
-      options: { emailRedirectTo: urlDeRetorno() },
-    });
-
-    if (error) {
-      setEstado({
-        tipo: "erro",
-        mensagem:
-          "Não foi possível enviar o link. Confira o e-mail e tente de novo.",
-      });
-      return;
-    }
-    setEstado({ tipo: "enviado", email });
-  }
-
-  async function entrarComGoogle() {
-    setEntrandoComGoogle(true);
-    const { error } = await createClient().auth.signInWithOAuth({
-      provider: "google",
-      options: { redirectTo: urlDeRetorno() },
-    });
-    if (error) {
-      setEntrandoComGoogle(false);
-      setEstado({
-        tipo: "erro",
-        mensagem: "Não foi possível entrar com o Google. Tente de novo.",
-      });
-    }
-  }
-
-  if (estado.tipo === "enviado") {
+  if (emailConfirmacao) {
     return (
       <Card className="w-full max-w-sm">
         <CardHeader>
-          <CardTitle>Confira seu e-mail</CardTitle>
+          <CardTitle>Confirme seu e-mail</CardTitle>
           <CardDescription>
-            Enviamos um link de acesso para{" "}
-            <strong className="text-foreground">{estado.email}</strong>. Abra o
-            link neste mesmo navegador para entrar.
+            Enviamos um link de confirmação para{" "}
+            <strong className="text-foreground">{emailConfirmacao}</strong>.
+            Abra o link para ativar a conta e depois entre com sua senha.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <Button
             variant="outline"
             className="h-10 w-full"
-            onClick={() => setEstado({ tipo: "ocioso" })}
+            onClick={() => {
+              setEmailConfirmacao(null);
+              setModo("entrar");
+            }}
           >
-            Usar outro e-mail
+            Voltar para entrar
           </Button>
         </CardContent>
       </Card>
     );
   }
 
-  const enviando = estado.tipo === "enviando";
-
   return (
     <Card className="w-full max-w-sm">
       <CardHeader>
-        <CardTitle>Entrar</CardTitle>
+        <div
+          role="tablist"
+          aria-label="Entrar ou criar conta"
+          className="mb-2 grid grid-cols-2 rounded-lg bg-muted p-1"
+        >
+          {(
+            [
+              ["entrar", "Entrar"],
+              ["cadastrar", "Criar conta"],
+            ] as const
+          ).map(([valor, rotulo]) => (
+            <button
+              key={valor}
+              type="button"
+              role="tab"
+              aria-selected={modo === valor}
+              onClick={() => setModo(valor)}
+              className={cn(
+                "h-9 rounded-md text-sm font-medium transition-colors",
+                modo === valor
+                  ? "bg-background text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              {rotulo}
+            </button>
+          ))}
+        </div>
+        <CardTitle>{modo === "entrar" ? "Entrar" : "Criar conta"}</CardTitle>
         <CardDescription>
-          Receba um link de acesso por e-mail ou use sua conta Google.
+          {modo === "entrar"
+            ? "Use o e-mail e a senha da sua conta."
+            : "Cadastre um e-mail e uma senha para acessar o app."}
         </CardDescription>
       </CardHeader>
-      <CardContent className="flex flex-col gap-4">
-        <form onSubmit={enviarLinkMagico} className="flex flex-col gap-3">
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="email">E-mail</Label>
-            <Input
-              id="email"
-              type="email"
-              inputMode="email"
-              autoComplete="email"
-              placeholder="voce@exemplo.com"
-              required
-              className="h-10 text-base"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              disabled={enviando}
-            />
-          </div>
-          <Button type="submit" className="h-10 w-full" disabled={enviando}>
-            {enviando ? "Enviando…" : "Enviar link de acesso"}
-          </Button>
-        </form>
-
-        <div className="flex items-center gap-3 text-xs text-muted-foreground">
-          <span className="h-px flex-1 bg-border" />
-          ou
-          <span className="h-px flex-1 bg-border" />
-        </div>
-
-        <Button
-          type="button"
-          variant="outline"
-          className="h-10 w-full"
-          onClick={entrarComGoogle}
-          disabled={entrandoComGoogle}
-        >
-          <GoogleIcon />
-          {entrandoComGoogle ? "Abrindo o Google…" : "Entrar com Google"}
-        </Button>
-
-        {estado.tipo === "erro" && (
-          <p role="alert" className="text-sm text-destructive">
-            {estado.mensagem}
-          </p>
+      <CardContent>
+        {modo === "entrar" ? (
+          <EntrarForm
+            next={next}
+            erroInicial={erroDaUrl ? ERROS_DA_URL[erroDaUrl] : undefined}
+          />
+        ) : (
+          <CadastroForm next={next} onEnviado={setEmailConfirmacao} />
         )}
       </CardContent>
     </Card>
   );
 }
 
-function GoogleIcon() {
+function EntrarForm({
+  next,
+  erroInicial,
+}: {
+  next: string;
+  erroInicial?: string;
+}) {
+  const router = useRouter();
+  const [erro, setErro] = useState<string | undefined>(erroInicial);
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm<EntrarDados>({ resolver: zodResolver(entrarSchema) });
+
+  async function entrar({ email, senha }: EntrarDados) {
+    setErro(undefined);
+    const { error } = await createClient().auth.signInWithPassword({
+      email,
+      password: senha,
+    });
+    if (error) {
+      setErro(traduzirErroAuth(error));
+      return;
+    }
+    router.replace(next);
+    router.refresh();
+  }
+
   return (
-    <svg viewBox="0 0 24 24" className="size-4" aria-hidden>
-      <path
-        fill="#4285F4"
-        d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.27-4.74 3.27-8.1z"
+    <form
+      onSubmit={handleSubmit(entrar)}
+      noValidate
+      className="flex flex-col gap-4"
+    >
+      <Campo
+        id="email"
+        rotulo="E-mail"
+        type="email"
+        inputMode="email"
+        autoComplete="email"
+        placeholder="voce@exemplo.com"
+        erro={errors.email?.message}
+        {...register("email")}
       />
-      <path
-        fill="#34A853"
-        d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84A11 11 0 0 0 12 23z"
+      <div className="flex flex-col gap-2">
+        <Campo
+          id="senha"
+          rotulo="Senha"
+          type="password"
+          autoComplete="current-password"
+          erro={errors.senha?.message}
+          {...register("senha")}
+        />
+        <Link
+          href="/recuperar-senha"
+          className="self-end text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+        >
+          Esqueci minha senha
+        </Link>
+      </div>
+      <Button type="submit" className="h-10 w-full" disabled={isSubmitting}>
+        {isSubmitting ? "Entrando…" : "Entrar"}
+      </Button>
+      {erro && (
+        <p role="alert" className="text-sm text-destructive">
+          {erro}
+        </p>
+      )}
+    </form>
+  );
+}
+
+function CadastroForm({
+  next,
+  onEnviado,
+}: {
+  next: string;
+  onEnviado: (email: string) => void;
+}) {
+  const router = useRouter();
+  const [erro, setErro] = useState<string>();
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm<CadastroDados>({ resolver: zodResolver(cadastroSchema) });
+
+  async function cadastrar({ email, senha }: CadastroDados) {
+    setErro(undefined);
+    const confirmacao = new URL("/auth/callback", window.location.origin);
+    if (next !== "/") confirmacao.searchParams.set("next", next);
+
+    const { data, error } = await createClient().auth.signUp({
+      email,
+      password: senha,
+      options: { emailRedirectTo: confirmacao.toString() },
+    });
+    if (error) {
+      setErro(traduzirErroAuth(error));
+      return;
+    }
+    // Com confirmação de e-mail ligada, um e-mail já cadastrado volta sem
+    // identidades (o Supabase não revela que a conta existe).
+    if (data.user && data.user.identities?.length === 0) {
+      setErro("Já existe uma conta com este e-mail. Tente entrar.");
+      return;
+    }
+    if (data.session) {
+      // Confirmação de e-mail desligada no Supabase: já entra direto.
+      router.replace(next);
+      router.refresh();
+      return;
+    }
+    onEnviado(email);
+  }
+
+  return (
+    <form
+      onSubmit={handleSubmit(cadastrar)}
+      noValidate
+      className="flex flex-col gap-4"
+    >
+      <Campo
+        id="email"
+        rotulo="E-mail"
+        type="email"
+        inputMode="email"
+        autoComplete="email"
+        placeholder="voce@exemplo.com"
+        erro={errors.email?.message}
+        {...register("email")}
       />
-      <path
-        fill="#FBBC05"
-        d="M5.84 14.1A6.6 6.6 0 0 1 5.5 12c0-.73.13-1.44.34-2.1V7.06H2.18A11 11 0 0 0 1 12c0 1.77.43 3.45 1.18 4.94l3.66-2.84z"
+      <Campo
+        id="senha"
+        rotulo="Senha"
+        type="password"
+        autoComplete="new-password"
+        placeholder="Mínimo de 8 caracteres"
+        erro={errors.senha?.message}
+        {...register("senha")}
       />
-      <path
-        fill="#EA4335"
-        d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1A11 11 0 0 0 2.18 7.06l3.66 2.84C6.71 7.31 9.14 5.38 12 5.38z"
+      <Campo
+        id="confirmacao"
+        rotulo="Confirme a senha"
+        type="password"
+        autoComplete="new-password"
+        erro={errors.confirmacao?.message}
+        {...register("confirmacao")}
       />
-    </svg>
+      <Button type="submit" className="h-10 w-full" disabled={isSubmitting}>
+        {isSubmitting ? "Criando conta…" : "Criar conta"}
+      </Button>
+      {erro && (
+        <p role="alert" className="text-sm text-destructive">
+          {erro}
+        </p>
+      )}
+    </form>
   );
 }

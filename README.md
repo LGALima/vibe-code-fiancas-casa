@@ -22,7 +22,7 @@ Requisitos: Node.js 20 ou mais novo e um projeto no [Supabase](https://supabase.
    - **Site URL**: `http://localhost:3000`
    - **Redirect URLs**: adicione `http://localhost:3000/auth/callback`
 
-4. Para o botão **Entrar com Google**, ative o provedor Google em *Authentication → Sign In / Providers*. Você vai precisar de um Client ID e de um Client Secret do Google Cloud, com `https://<seu-projeto>.supabase.co/auth/v1/callback` como URI de redirecionamento autorizado. O link mágico por e-mail já vem ativo.
+4. O login é por **e-mail e senha**, que já vem ativo no Supabase. O cadastro envia um e-mail de confirmação, e "Esqueci minha senha" envia um link para criar uma nova. O serviço de e-mail incluso no Supabase só entrega para membros da equipe da organização e tem limite baixo de envios por hora. Para uso real, configure um SMTP próprio em *Authentication → Emails → SMTP Settings*.
 
 5. Suba o servidor e abra http://localhost:3000:
 
@@ -43,5 +43,7 @@ Requisitos: Node.js 20 ou mais novo e um projeto no [Supabase](https://supabase.
 
 - `src/proxy.ts`: renova a sessão do Supabase a cada requisição e manda para `/login` quem não está logado. No Next 16, o antigo `middleware.ts` passou a se chamar `proxy.ts`.
 - `src/lib/supabase/`: clientes do Supabase para o navegador (`client.ts`) e para o servidor (`server.ts`).
-- `src/app/login`, `src/app/auth/callback`: login com link mágico e Google, e o retorno do login.
+- `src/app/login`: entrar e criar conta com e-mail e senha.
+- `src/app/recuperar-senha`, `src/app/redefinir-senha`: pedir o link de recuperação e criar a nova senha.
+- `src/app/auth/callback`: retorno dos links enviados por e-mail (confirmação de cadastro e recuperação de senha).
 - `src/app/(app)/`: telas logadas (Início, Lançar, Análises, Ciclos, Cadastros) com a barra inferior.
