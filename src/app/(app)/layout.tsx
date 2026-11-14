@@ -1,6 +1,7 @@
 import { Suspense, type ReactNode } from "react";
 import { redirect } from "next/navigation";
 import { Wallet } from "lucide-react";
+import { BotaoAjuda } from "@/components/ajuda";
 import { BotaoSair } from "@/components/botao-sair";
 import { BotaoTema } from "@/components/botao-tema";
 import { BarraInferior, LinksLaterais } from "@/components/navegacao";
@@ -26,6 +27,7 @@ export default function AppLayout({ children }: LayoutProps<"/">) {
         </Suspense>
         <LinksLaterais />
         <div className="mt-auto flex flex-col gap-1">
+          <BotaoAjuda comRotulo className="h-9 w-full px-3" />
           <BotaoTema comRotulo className="h-9 w-full px-3" />
           <BotaoSair className="h-9 w-full justify-start px-3" />
         </div>
@@ -38,6 +40,7 @@ export default function AppLayout({ children }: LayoutProps<"/">) {
             <EspacoAtual variante="cabecalho" />
           </Suspense>
           <div className="flex shrink-0 items-center gap-1">
+            <BotaoAjuda />
             <BotaoTema />
             <BotaoSair />
           </div>
