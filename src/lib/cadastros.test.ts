@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { CORES, ICONES, NOMES_ICONES, PALETA } from "./cadastros";
+import { readFileSync } from "node:fs";
+import path from "node:path";
+import { CORES, ICONES, ICONES_FORMA, iconeDaForma, NOMES_ICONES, PALETA } from "./cadastros";
 
 // Cores e ícones que já podem estar salvos no banco (versão anterior e sementes).
 const CORES_ANTIGAS = [
@@ -33,6 +35,29 @@ describe("ícones de categoria", () => {
 
   it("não repete o nome mostrado na tela", () => {
     const nomes = Object.values(ICONES).map((i) => i.nome);
+    expect(new Set(nomes).size).toBe(nomes.length);
+  });
+});
+
+describe("ícones das formas de pagamento", () => {
+  it("tem todas as chaves que o banco sugere pelo nome", () => {
+    const sql = readFileSync(
+      path.join(process.cwd(), "supabase/migrations/20261115100000_icone_formas_pagamento.sql"),
+      "utf8",
+    );
+    const sugeridas = [...sql.matchAll(/(?:then|else) '([a-z0-9-]+)'/g)].map((m) => m[1]);
+    expect(sugeridas.length).toBeGreaterThan(10);
+    for (const chave of sugeridas) expect(ICONES_FORMA).toHaveProperty(chave);
+  });
+
+  it("usa a carteira para ícone desconhecido ou vazio", () => {
+    expect(iconeDaForma("nao-existe")).toBe(ICONES_FORMA.wallet.Icone);
+    expect(iconeDaForma(null)).toBe(ICONES_FORMA.wallet.Icone);
+    expect(iconeDaForma("pix")).toBe(ICONES_FORMA.pix.Icone);
+  });
+
+  it("não repete o nome mostrado na tela", () => {
+    const nomes = Object.values(ICONES_FORMA).map((i) => i.nome);
     expect(new Set(nomes).size).toBe(nomes.length);
   });
 });

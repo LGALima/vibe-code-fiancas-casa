@@ -40,7 +40,7 @@ async function Conteudo() {
       .order("nome"),
     supabase
       .from("formas_pagamento")
-      .select("id, nome, eh_credito, ativa, lancamentos(count)")
+      .select("id, nome, eh_credito, icone, ativa, lancamentos(count)")
       .eq("espaco_id", espaco.id)
       .order("nome"),
     supabase
@@ -71,6 +71,7 @@ async function Conteudo() {
     id: f.id,
     nome: f.nome,
     ehCredito: f.eh_credito,
+    icone: f.icone,
     ativa: f.ativa,
     emUso: (f.lancamentos[0]?.count ?? 0) > 0,
   }));

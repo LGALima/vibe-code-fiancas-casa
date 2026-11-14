@@ -73,6 +73,13 @@ import {
   Wifi,
   Wrench,
   Zap,
+  ArrowLeftRight,
+  Barcode,
+  Bitcoin,
+  QrCode,
+  Repeat,
+  ShoppingBasket,
+  WalletCards,
   type LucideIcon,
 } from "lucide-react";
 
@@ -189,6 +196,37 @@ export const NOMES_ICONES = Object.keys(ICONES) as [NomeIcone, ...NomeIcone[]];
 
 export function iconeDaCategoria(nome: string | null | undefined): LucideIcon {
   return nome && nome in ICONES ? ICONES[nome as NomeIcone].Icone : Tag;
+}
+
+/**
+ * Ícones das formas de pagamento. A chave fica salva em
+ * formas_pagamento.icone; o banco sugere uma pelo nome quando não é informada
+ * (privado.icone_sugerido_forma), então as chaves de lá precisam existir aqui.
+ */
+export const ICONES_FORMA = {
+  pix: { Icone: QrCode, nome: "Pix" },
+  "credit-card": { Icone: CreditCard, nome: "Cartão de crédito" },
+  "wallet-cards": { Icone: WalletCards, nome: "Cartão de débito" },
+  banknote: { Icone: Banknote, nome: "Dinheiro" },
+  "arrow-left-right": { Icone: ArrowLeftRight, nome: "TED / transferência" },
+  bitcoin: { Icone: Bitcoin, nome: "Cripto" },
+  barcode: { Icone: Barcode, nome: "Boleto" },
+  repeat: { Icone: Repeat, nome: "Débito automático" },
+  smartphone: { Icone: Smartphone, nome: "Carteira digital" },
+  utensils: { Icone: Utensils, nome: "Vale-refeição" },
+  "shopping-basket": { Icone: ShoppingBasket, nome: "Vale-alimentação" },
+  "piggy-bank": { Icone: PiggyBank, nome: "Poupança" },
+  coins: { Icone: Coins, nome: "Cashback / pontos" },
+  landmark: { Icone: Landmark, nome: "Conta no banco" },
+  "hand-coins": { Icone: HandCoins, nome: "Empréstimo" },
+  wallet: { Icone: Wallet, nome: "Outros" },
+} as const satisfies Record<string, { Icone: LucideIcon; nome: string }>;
+
+export type NomeIconeForma = keyof typeof ICONES_FORMA;
+export const NOMES_ICONES_FORMA = Object.keys(ICONES_FORMA) as [NomeIconeForma, ...NomeIconeForma[]];
+
+export function iconeDaForma(nome: string | null | undefined): LucideIcon {
+  return nome && nome in ICONES_FORMA ? ICONES_FORMA[nome as NomeIconeForma].Icone : Wallet;
 }
 
 export const TIPOS_CATEGORIA = [

@@ -149,6 +149,7 @@ export type Database = {
           nome: string;
           eh_credito: boolean;
           ativa: boolean;
+          icone: string;
         };
         Insert: {
           id?: string;
@@ -156,6 +157,7 @@ export type Database = {
           nome: string;
           eh_credito?: boolean;
           ativa?: boolean;
+          icone: string;
         };
         Update: {
           id?: string;
@@ -163,6 +165,7 @@ export type Database = {
           nome?: string;
           eh_credito?: boolean;
           ativa?: boolean;
+          icone?: string;
         };
         Relationships: [
           {

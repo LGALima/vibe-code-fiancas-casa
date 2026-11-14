@@ -5,7 +5,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Controller, useForm, useWatch } from "react-hook-form";
-import { CreditCard } from "lucide-react";
 import { Campo } from "@/components/campo";
 import { Escolha } from "@/components/escolha";
 import { Button } from "@/components/ui/button";
@@ -19,6 +18,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { IconeCategoria } from "@/components/icone-categoria";
+import { IconeForma } from "@/components/icone-forma";
 import { DialogoConfirmarExclusao } from "@/components/confirmar-exclusao";
 import type { CategoriaOpcao, Ciclo, FormaOpcao, Lancamento } from "@/lib/dados";
 import { mascararCentavos, mascararColado, valorParaCampo } from "@/lib/dominio/dinheiro";
@@ -411,7 +411,7 @@ export function FormularioLancamento({ espacoId, hoje, ciclos, categorias, forma
                         : "hover:bg-muted",
                     )}
                   >
-                    {f.ehCredito && <CreditCard className="size-3.5" aria-hidden />}
+                    <IconeForma nome={f.icone} className="size-4" />
                     {f.nome}
                   </button>
                 );
