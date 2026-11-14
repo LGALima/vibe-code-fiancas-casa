@@ -87,6 +87,9 @@ async function Conteudo({ searchParams }: { searchParams: PageProps<"/">["search
         hoje={dataHoje}
         filtrosIniciais={{ categoria: categoriaPedida ?? "", pessoa: pessoaPedida ?? "" }}
       />
+      {/* Folga no fim da lista: rolando até o último lançamento, o botão
+          flutuante "Lançar" fica abaixo dele em vez de cobrir o valor. */}
+      <div aria-hidden className="h-20 shrink-0 md:h-16" />
       <Button
         className="fixed right-4 bottom-[calc(5rem+env(safe-area-inset-bottom))] z-30 size-14 rounded-full shadow-lg md:right-8 md:bottom-8"
         nativeButton={false} render={<Link href="/lancar" aria-label="Lançar" />}
