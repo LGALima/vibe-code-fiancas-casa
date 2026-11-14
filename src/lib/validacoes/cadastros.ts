@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { CORES, NOMES_ICONES } from "@/lib/cadastros";
+import { CORES, NOMES_ICONES, NOMES_ICONES_FORMA } from "@/lib/cadastros";
 
 const nome = (o_que: string) =>
   z
@@ -21,6 +21,7 @@ export type CategoriaDados = z.infer<typeof categoriaSchema>;
 export const formaPagamentoSchema = z.object({
   nome: nome("forma de pagamento"),
   ehCredito: z.boolean(),
+  icone: z.enum(NOMES_ICONES_FORMA, { error: "Escolha um ícone." }),
 });
 export type FormaPagamentoDados = z.infer<typeof formaPagamentoSchema>;
 

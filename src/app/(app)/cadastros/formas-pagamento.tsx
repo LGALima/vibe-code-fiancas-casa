@@ -6,6 +6,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Controller, useForm } from "react-hook-form";
 import { ChevronRight, CreditCard, Plus } from "lucide-react";
 import { Campo } from "@/components/campo";
+import { Escolha } from "@/components/escolha";
+import { IconeForma } from "@/components/icone-forma";
 import { PainelConfirmarExclusao } from "@/components/confirmar-exclusao";
 import { Button } from "@/components/ui/button";
 import {
@@ -25,6 +27,7 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { ICONES_FORMA, NOMES_ICONES_FORMA, type NomeIconeForma } from "@/lib/cadastros";
 import { createClient } from "@/lib/supabase/client";
 import { traduzirErroBanco } from "@/lib/supabase/erros";
 import {
@@ -36,6 +39,7 @@ export type FormaPagamento = {
   id: string;
   nome: string;
   ehCredito: boolean;
+  icone: string;
   ativa: boolean;
   emUso: boolean;
 };
@@ -117,6 +121,9 @@ function Lista({
             onClick={() => onEditar(f)}
             className="flex w-full items-center gap-3 px-3 py-2.5 text-left text-sm outline-none hover:bg-muted/50 focus-visible:bg-muted"
           >
+            <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted text-foreground">
+              <IconeForma nome={f.icone} className="size-4" />
+            </span>
             <span className={f.ativa ? "flex-1" : "flex-1 text-muted-foreground line-through"}>
               {f.nome}
             </span>
@@ -157,8 +164,8 @@ function Formulario({
   } = useForm<FormaPagamentoDados>({
     resolver: zodResolver(formaPagamentoSchema),
     defaultValues: forma
-      ? { nome: forma.nome, ehCredito: forma.ehCredito }
-      : { nome: "", ehCredito: false },
+      ? { nome: forma.nome, ehCredito: forma.ehCredito, icone: iconeValido(forma.icone) }
+      : { nome: "", ehCredito: false, icone: "wallet" },
   });
 
   const duplicada = "Já existe uma forma de pagamento com esse nome neste espaço.";
@@ -182,9 +189,9 @@ function Formulario({
     });
   }
 
-  function salvar({ nome, ehCredito }: FormaPagamentoDados) {
+  function salvar({ nome, ehCredito, icone }: FormaPagamentoDados) {
     const supabase = createClient();
-    const dados = { nome, eh_credito: ehCredito };
+    const dados = { nome, eh_credito: ehCredito, icone };
     concluir("salvar", () =>
       forma
         ? supabase.from("formas_pagamento").update(dados).eq("id", forma.id)
@@ -237,7 +244,7 @@ function Formulario({
       <DialogHeader>
         <DialogTitle>{forma ? "Editar forma de pagamento" : "Nova forma de pagamento"}</DialogTitle>
         <DialogDescription>
-          Marque &quot;É crédito&quot; para ver o peso do cartão nos gráficos.
+          Escolha um ícone para reconhecer a forma na hora de lançar.
         </DialogDescription>
       </DialogHeader>
 
@@ -266,6 +273,30 @@ function Formulario({
                 checked={field.value}
                 onCheckedChange={(v) => field.onChange(Boolean(v))}
               />
+            </div>
+          )}
+        />
+        <Controller
+          control={control}
+          name="icone"
+          render={({ field }) => (
+            <div className="flex flex-col gap-1">
+              <Escolha
+                rotulo="Ícone"
+                variante="grade"
+                opcoes={NOMES_ICONES_FORMA.map((nome) => {
+                  const { Icone, nome: rotulo } = ICONES_FORMA[nome];
+                  return { valor: nome, rotulo, conteudo: <Icone className="size-5" aria-hidden /> };
+                })}
+                valor={field.value}
+                onChange={field.onChange}
+                erro={errors.icone?.message}
+              />
+              {field.value && (
+                <p className="text-xs text-muted-foreground" aria-hidden>
+                  {ICONES_FORMA[field.value].nome}
+                </p>
+              )}
             </div>
           )}
         />
@@ -322,4 +353,9 @@ function Formulario({
       )}
     </DialogContent>
   );
+}
+
+/** Ícone salvo que o app conhece; senão, "Outros". */
+function iconeValido(icone: string): NomeIconeForma {
+  return icone in ICONES_FORMA ? (icone as NomeIconeForma) : "wallet";
 }

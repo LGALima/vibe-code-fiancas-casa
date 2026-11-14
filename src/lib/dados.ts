@@ -24,6 +24,7 @@ export type FormaOpcao = {
   id: string;
   nome: string;
   ehCredito: boolean;
+  icone: string;
   ativa: boolean;
 };
 
@@ -75,7 +76,7 @@ export const carregarCadastros = cache(async (espacoId: string) => {
       .order("nome"),
     supabase
       .from("formas_pagamento")
-      .select("id, nome, eh_credito, ativa")
+      .select("id, nome, eh_credito, icone, ativa")
       .eq("espaco_id", espacoId)
       .order("nome"),
     supabase
@@ -93,7 +94,7 @@ export const carregarCadastros = cache(async (espacoId: string) => {
       (c): CategoriaOpcao => ({ ...c, tipo: c.tipo as CategoriaOpcao["tipo"] }),
     ),
     formas: formas.data.map(
-      (f): FormaOpcao => ({ id: f.id, nome: f.nome, ehCredito: f.eh_credito, ativa: f.ativa }),
+      (f): FormaOpcao => ({ id: f.id, nome: f.nome, ehCredito: f.eh_credito, icone: f.icone, ativa: f.ativa }),
     ),
     diaInicioCiclo: configuracoes.data?.dia_inicio_ciclo ?? 3,
   };
