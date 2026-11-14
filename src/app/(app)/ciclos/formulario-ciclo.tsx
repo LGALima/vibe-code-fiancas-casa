@@ -242,7 +242,7 @@ function Formulario({
         <DialogDescription>
           {ciclo
             ? "Ao mudar as datas, os lançamentos passam para o ciclo que contém a data de cada um."
-            : "Sugerido pelo dia de início configurado. Ajuste as datas se o salário entrou em outro dia."}
+            : "Sugerido pelo dia de início configurado. Ajuste as datas se este mês fechar em outro dia."}
         </DialogDescription>
       </DialogHeader>
       <form id="form-ciclo" onSubmit={handleSubmit(salvar)} noValidate className="flex flex-col gap-4">

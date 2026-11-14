@@ -257,7 +257,7 @@ function Formulario({
               <Label htmlFor="eh-credito" className="flex flex-col items-start gap-1">
                 É crédito
                 <span className="text-xs font-normal text-muted-foreground">
-                  Compras contam no ciclo em que foram feitas.
+                  Mostra o peso do cartão nos gráficos.
                 </span>
               </Label>
               <Switch

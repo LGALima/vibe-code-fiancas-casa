@@ -21,8 +21,8 @@ App web para controle de finanças pessoais de um casal. Especificação complet
 - Cada etapa termina com: lint e build sem erros, testes passando, PR aberto com resumo do que mudou e como testar.
 
 ## Conceitos do domínio
-- Ciclo: o "mês" financeiro, começa quando entra a 2ª parte do salário (dia padrão 3) e vai até a véspera do próximo.
+- Ciclo: o "fechamento de mês" que a pessoa escolher, para ver se o dinheiro sobrou ou faltou; começa no dia configurado (padrão 3) e vai até a véspera do próximo. Não mencionar salário na interface.
 - Lançamento: gasto ou ganho; tem estimativa e/ou valor real (ao menos um).
 - Status calculado: Previsto (só estimativa), Realizado (os dois), Não planejado (só real).
-- Crédito conta no ciclo em que a compra foi feita; não há controle de fatura.
+- Crédito conta no ciclo em que a compra foi feita; não há controle de fatura (regra interna, sem texto sobre fatura na interface).
 - Espaço: a casa; os dois usuários são membros e veem os mesmos dados.

@@ -48,8 +48,8 @@ async function Conteudo({ searchParams }: { searchParams: PageProps<"/">["search
     return (
       <div className="flex flex-col items-center gap-4 rounded-xl border border-dashed px-6 py-12 text-center">
         <p className="text-sm text-muted-foreground">
-          Ainda não há ciclos. O ciclo é o seu &quot;mês&quot;: começa quando entra
-          a 2ª parte do salário.
+          Ainda não há ciclos. O ciclo é o seu fechamento de mês: o período em
+          que você vê se o dinheiro sobrou ou faltou.
         </p>
         <Button nativeButton={false} render={<Link href="/ciclos" />}>
           <IconeLink />
