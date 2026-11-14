@@ -73,9 +73,10 @@ function Topicos({ inicial }: { inicial: Topico }) {
     <div className="flex flex-col gap-2">
       <Secao id="ciclo" inicial={inicial} Icone={CalendarRange} titulo="Ciclo">
         <p>
-          O ciclo é o <strong>&quot;mês&quot; financeiro</strong> da casa. Ele não segue o
-          calendário: começa no dia em que entra a 2ª parte do salário e vai até a véspera
-          do próximo. Exemplo: com início no dia 3, o ciclo vai de 03/11 a 02/12.
+          O ciclo é o <strong>fechamento de mês</strong> da casa: o período que você
+          considera para saber se o dinheiro sobrou ou faltou. Ele não precisa seguir o
+          calendário. Começa no dia que fizer sentido para vocês e vai até a véspera do
+          próximo. Exemplo: com início no dia 3, o ciclo vai de 03/11 a 02/12.
         </p>
         <ul>
           <li>
@@ -132,10 +133,6 @@ function Topicos({ inicial }: { inicial: Topico }) {
             salário. Vira previsto no próximo ciclo.
           </li>
           <li>
-            Compras no <strong>crédito</strong> contam no ciclo em que foram feitas, não no
-            da fatura.
-          </li>
-          <li>
             Na lista do Início, use a busca e os <strong>Filtros</strong>. Com algum filtro
             ligado, o total filtrado aparece acima da lista.
           </li>
@@ -186,12 +183,13 @@ function Topicos({ inicial }: { inicial: Topico }) {
           </li>
           <li>
             <strong>Formas de pagamento</strong>: como o dinheiro entrou ou saiu (Pix,
-            dinheiro, cartão…). Marque <strong>É crédito</strong> nos cartões de crédito.
+            dinheiro, cartão…). Marque <strong>É crédito</strong> nos cartões de crédito para ver o
+            peso do cartão nos gráficos.
             Também podem ser desativadas.
           </li>
           <li>
             <strong>Configurações</strong>: o <strong>dia de início do ciclo</strong> (o dia
-            em que costuma entrar a 2ª parte do salário, de 1 a 28). Mudar o dia não altera
+            em que vocês consideram que o mês recomeça, de 1 a 28). Mudar o dia não altera
             os ciclos já criados.
           </li>
           <li>

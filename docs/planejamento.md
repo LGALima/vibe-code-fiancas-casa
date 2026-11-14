@@ -6,7 +6,7 @@ Nov 12, 2026 · @Lucas Assis
 
 O app junta suas duas planilhas em uma só tela: cada lançamento nasce como **projeção** (estimativa) e vira **realizado** quando você informa o valor real. Assim a planilha de projeção e a do mês atual passam a ser duas visões do mesmo dado, sem digitar nada duas vezes.
 
-O conceito central é o **Ciclo** (o seu "mês"). Ele não segue o calendário: começa quando entra a 2ª parte do salário (dias 3 a 6) e vai até a véspera do próximo ciclo. Exemplo do ciclo Dezembro/2026:
+O conceito central é o **Ciclo**: o "fechamento de mês" que a pessoa escolher, para ver se o dinheiro sobrou ou faltou. Ele não precisa seguir o calendário: começa no dia configurado e vai até a véspera do próximo ciclo. (No uso original do casal, o ciclo começa quando entra a 2ª parte do salário, dias 3 a 6; a interface não menciona salário.) Exemplo do ciclo Dezembro/2026:
 
 | Data | Evento | Ciclo |
 | --- | --- | --- |

@@ -86,7 +86,7 @@ export function Configuracoes({
               ))}
             </select>
             <p id="dia-inicio-ajuda" className="text-xs text-muted-foreground">
-              O dia em que costuma entrar a 2ª parte do salário. Vai de 1 a 28,
+              O dia em que vocês consideram que o mês recomeça. Vai de 1 a 28,
               para existir em todos os meses. Ciclos já criados não mudam.
             </p>
             {errors.diaInicioCiclo && (
