@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Controller, useForm } from "react-hook-form";
-import { Check, ChevronRight, Plus } from "lucide-react";
+import { Check, ChevronDown, ChevronRight, Plus } from "lucide-react";
 import { Campo } from "@/components/campo";
 import { PainelConfirmarExclusao } from "@/components/confirmar-exclusao";
 import { Escolha } from "@/components/escolha";
@@ -79,6 +79,7 @@ export function Categorias({
       <CardContent className="flex flex-col gap-4">
         <Lista
           categorias={ativas}
+          limite={LIMITE_INICIAL}
           vazia="Nenhuma categoria ativa."
           onEditar={(categoria) => setEdicao({ modo: "editar", categoria })}
         />
@@ -111,44 +112,72 @@ export function Categorias({
   );
 }
 
+/** Quantas categorias ativas aparecem antes do "Ver mais". */
+const LIMITE_INICIAL = 5;
+
 function Lista({
   categorias,
+  limite,
   vazia,
   onEditar,
 }: {
   categorias: Categoria[];
+  /** Sem limite, mostra todas. */
+  limite?: number;
   vazia?: string;
   onEditar: (c: Categoria) => void;
 }) {
+  const [expandida, setExpandida] = useState(false);
   if (categorias.length === 0) {
     return vazia ? <p className="text-sm text-muted-foreground">{vazia}</p> : null;
   }
+  const corta = limite !== undefined && categorias.length > limite;
+  const visiveis = corta && !expandida ? categorias.slice(0, limite) : categorias;
+  const escondidas = categorias.length - (limite ?? 0);
   return (
-    <ul className="flex flex-col divide-y rounded-lg border">
-      {categorias.map((c) => {
-        return (
-          <li key={c.id}>
-            <button
-              type="button"
-              onClick={() => onEditar(c)}
-              className="flex w-full items-center gap-3 px-3 py-2.5 text-left text-sm outline-none hover:bg-muted/50 focus-visible:bg-muted"
-            >
-              <span
-                className="flex size-8 shrink-0 items-center justify-center rounded-full text-white"
-                style={{ backgroundColor: c.cor ?? "var(--muted-foreground)" }}
+    <div className="flex flex-col gap-2">
+      <ul className="flex flex-col divide-y rounded-lg border">
+        {visiveis.map((c) => {
+          return (
+            <li key={c.id}>
+              <button
+                type="button"
+                onClick={() => onEditar(c)}
+                className="flex w-full items-center gap-3 px-3 py-2.5 text-left text-sm outline-none hover:bg-muted/50 focus-visible:bg-muted"
               >
-                <IconeCategoria nome={c.icone} className="size-4" />
-              </span>
-              <span className={c.ativa ? "flex-1" : "flex-1 text-muted-foreground line-through"}>
-                {c.nome}
-              </span>
-              <span className="text-xs text-muted-foreground">{ROTULO_TIPO[c.tipo]}</span>
-              <ChevronRight className="size-4 text-muted-foreground" aria-hidden />
-            </button>
-          </li>
-        );
-      })}
-    </ul>
+                <span
+                  className="flex size-8 shrink-0 items-center justify-center rounded-full text-white"
+                  style={{ backgroundColor: c.cor ?? "var(--muted-foreground)" }}
+                >
+                  <IconeCategoria nome={c.icone} className="size-4" />
+                </span>
+                <span className={c.ativa ? "flex-1" : "flex-1 text-muted-foreground line-through"}>
+                  {c.nome}
+                </span>
+                <span className="text-xs text-muted-foreground">{ROTULO_TIPO[c.tipo]}</span>
+                <ChevronRight className="size-4 text-muted-foreground" aria-hidden />
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+      {corta && (
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="self-center text-muted-foreground"
+          onClick={() => setExpandida((v) => !v)}
+          aria-expanded={expandida}
+        >
+          <ChevronDown
+            aria-hidden
+            className={expandida ? "rotate-180 transition-transform" : "transition-transform"}
+          />
+          {expandida ? "Ver menos" : `Ver mais (${escondidas})`}
+        </Button>
+      )}
+    </div>
   );
 }
 
