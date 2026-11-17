@@ -31,7 +31,6 @@ import {
   type LancamentoEntrada,
 } from "@/lib/validacoes/lancamento";
 
-const CHAVE_ULTIMA_FORMA = "financas:ultima-forma";
 
 type Props = {
   espacoId: string;
@@ -42,27 +41,6 @@ type Props = {
   /** Lançamento existente: editar (modo "editar") ou copiar (modo "duplicar"). */
   origem?: { modo: "editar" | "duplicar"; lancamento: Lancamento };
 };
-
-function lerUltimaForma(): string | null {
-  try {
-    return window.localStorage.getItem(CHAVE_ULTIMA_FORMA);
-  } catch {
-    return null;
-  }
-}
-
-function salvarUltimaForma(id: string) {
-  try {
-    window.localStorage.setItem(CHAVE_ULTIMA_FORMA, id);
-  } catch {
-    // Sem armazenamento local: tudo bem, só não lembra a última forma.
-  }
-}
-
-function formaPadrao(formas: FormaOpcao[]): string {
-  const ativas = formas.filter((f) => f.ativa);
-  return (ativas.find((f) => f.nome.toLowerCase() === "pix") ?? ativas[0])?.id ?? "";
-}
 
 export function FormularioLancamento({ espacoId, hoje, ciclos, categorias, formas, origem }: Props) {
   const router = useRouter();
@@ -84,19 +62,15 @@ export function FormularioLancamento({ espacoId, hoje, ciclos, categorias, forma
   const schema = useMemo(() => lancamentoSchema(ciclos), [ciclos]);
 
   function valoresIniciais(): LancamentoEntrada {
-    let formaId = base?.forma_pagamento_id ?? formaPadrao(formas);
-    // Num lançamento novo, volta para a última forma de pagamento usada.
-    if (!origem) {
-      const ultima = lerUltimaForma();
-      if (ultima && formas.some((f) => f.id === ultima && f.ativa)) formaId = ultima;
-    }
     return {
       tipo: base?.tipo ?? "gasto",
       descricao: base?.descricao ?? "",
       estimativa: valorParaCampo(base?.estimativa),
       valorReal: valorParaCampo(base?.valor_real),
       categoriaId: base?.categoria_id ?? "",
-      formaId,
+      // Lançamento novo: forma e categoria começam sem nada marcado, para a
+      // pessoa escolher de propósito. Editar e duplicar mantêm a do original.
+      formaId: base?.forma_pagamento_id ?? "",
       data: origem?.modo === "editar" ? base!.data : hoje,
       recorrente: base?.recorrente ?? false,
       parcelado: base?.total_parcelas != null,
@@ -117,20 +91,14 @@ export function FormularioLancamento({ espacoId, hoje, ciclos, categorias, forma
     formState: { errors, isSubmitting },
   } = useForm<LancamentoEntrada, unknown, LancamentoDados>({
     resolver: zodResolver(schema),
-    defaultValues: {
-      ...valoresIniciais(),
-      // A última forma vem do localStorage, que só existe no navegador: entra
-      // no efeito abaixo para não divergir da renderização do servidor.
-      formaId: base?.forma_pagamento_id ?? formaPadrao(formas),
-    },
+    defaultValues: valoresIniciais(),
   });
 
   // O Next guarda a tela anterior escondida, com o que foi digitado. Ao sair
   // dela, o formulário volta aos valores iniciais e sem erros; ao reaparecer,
-  // um lançamento novo vem com a última forma usada e o cursor no valor.
+  // um lançamento novo vem com o cursor no valor.
   const aparecer = useEffectEvent(() => {
     if (origem) return;
-    setValue("formaId", valoresIniciais().formaId);
     setFocus("valorReal");
   });
   const sumir = useEffectEvent(() => {
@@ -266,7 +234,6 @@ export function FormularioLancamento({ espacoId, hoje, ciclos, categorias, forma
       }
     }
 
-    salvarUltimaForma(d.formaId);
     iniciar(() => {
       router.push(`/?ciclo=${d.cicloId}`);
       router.refresh();
